@@ -1,4 +1,4 @@
-package com.passthephone.pass_the_phone
+package com.example.pass_the_phone
 
 import io.flutter.embedding.android.FlutterActivity
 
