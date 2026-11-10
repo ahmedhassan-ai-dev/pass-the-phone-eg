@@ -1,121 +1,239 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const PassThePhoneApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class PartyQuestion {
+  final String id;
+  final String category;
+  final String text;
+  const PartyQuestion({required this.id, required this.category, required this.text});
 
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  factory PartyQuestion.fromJson(Map<String, dynamic> json) => PartyQuestion(
+        id: json['id'] as String,
+        category: json['category'] as String,
+        text: json['text'] as String,
+      );
+}
+
+class QuestionRepository {
+  static Future<List<PartyQuestion>> load() async {
+    final source = await rootBundle.loadString('assets/data/questions.json');
+    final parsed = jsonDecode(source) as List<dynamic>;
+    return parsed
+        .map((item) => PartyQuestion.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class GameDeck {
+  final List<PartyQuestion> _questions;
+  int _index = 0;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  GameDeck(List<PartyQuestion> questions, String category)
+      : _questions = questions.where((q) => q.category == category).toList()
+          ..shuffle(Random());
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  int get count => _questions.length;
+  int get index => _index;
+  bool get finished => _index >= _questions.length;
+  PartyQuestion get current => _questions[_index];
+  void next() { if (!finished) _index++; }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+class PassThePhoneApp extends StatelessWidget {
+  const PassThePhoneApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'ادّي الموبايل',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF11111E),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF8B6CFF),
+            brightness: Brightness.dark,
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        home: const HomeScreen(),
+      );
+}
+
+const categories = <String, ({String title, String subtitle, IconData icon})>{
+  'friends': (title: 'الصحاب 😂', subtitle: 'ضحك ورخامة خفيفة', icon: Icons.people_alt_rounded),
+  'love': (title: 'الحب ❤️', subtitle: 'كراشات ومواقف', icon: Icons.favorite_rounded),
+  'savage': (title: 'الجريء 🔥', subtitle: 'للشلة القريبة', icon: Icons.local_fire_department_rounded),
+  'family': (title: 'العيلة 🏠', subtitle: 'للجمعات العائلية', icon: Icons.home_rounded),
+};
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String selected = 'friends';
+  late final Future<List<PartyQuestion>> questionFuture = QuestionRepository.load();
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: FutureBuilder<List<PartyQuestion>>(
+                future: questionFuture,
+                builder: (context, snapshot) {
+                  final available = snapshot.data?.where((q) => q.category == selected).length ?? 0;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Spacer(),
+                      const Icon(Icons.phone_android_rounded, size: 66, color: Color(0xFFB09AFF)),
+                      const SizedBox(height: 18),
+                      const Text('ادّي الموبايل 📱',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 10),
+                      const Text('اختاروا المود وخلي الموبايل يلف على الشلة!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70, fontSize: 15)),
+                      const Spacer(),
+                      ...categories.entries.map((entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Card(
+                              color: selected == entry.key ? const Color(0xFF383052) : const Color(0xFF202030),
+                              child: ListTile(
+                                onTap: () => setState(() => selected = entry.key),
+                                leading: Icon(entry.value.icon, color: const Color(0xFFB09AFF)),
+                                title: Text(entry.value.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text(entry.value.subtitle),
+                                trailing: Icon(selected == entry.key
+                                    ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+                              ),
+                            ),
+                          )),
+                      const SizedBox(height: 20),
+                      if (snapshot.hasError)
+                        const Text('حصلت مشكلة في تحميل الأسئلة.', textAlign: TextAlign.center),
+                      FilledButton(
+                        onPressed: snapshot.hasData && available > 0
+                            ? () => Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => GameScreen(
+                                    deck: GameDeck(snapshot.data!, selected),
+                                    categoryTitle: categories[selected]!.title,
+                                  ),
+                                ))
+                            : null,
+                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(60)),
+                        child: Text(snapshot.connectionState == ConnectionState.waiting
+                            ? 'بنجهز الأسئلة...' : 'ابدأ اللعب ($available سؤال)'),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class GameScreen extends StatefulWidget {
+  final GameDeck deck;
+  final String categoryTitle;
+  const GameScreen({required this.deck, required this.categoryTitle, super.key});
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  bool handoff = false;
+
+  void advance() {
+    HapticFeedback.selectionClick();
+    if (!handoff) {
+      setState(() => handoff = true);
+    } else {
+      setState(() {
+        widget.deck.next();
+        handoff = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final deck = widget.deck;
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: Text(widget.categoryTitle),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Text(deck.finished ? 'خلصت الأسئلة!' : 'السؤال ${deck.index + 1} من ${deck.count}',
+                    style: const TextStyle(color: Colors.white70)),
+                const SizedBox(height: 14),
+                LinearProgressIndicator(value: deck.count == 0 ? 0 : deck.index / deck.count,
+                    minHeight: 6, borderRadius: BorderRadius.circular(8)),
+                Expanded(
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      child: Column(
+                        key: ValueKey('${deck.index}-$handoff'),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(deck.finished ? '🎉' : handoff ? '📱' : '👀',
+                              style: const TextStyle(fontSize: 64)),
+                          const SizedBox(height: 24),
+                          Text(
+                            deck.finished
+                                ? 'خلصت أسئلة المود ده! جربوا مود تاني.'
+                                : handoff
+                                    ? 'الدور عليك!\nدوس عشان تكشف السؤال الجديد'
+                                    : deck.current.text,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 29, height: 1.5,
+                                fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: deck.finished ? () => Navigator.of(context).pop() : advance,
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(62)),
+                  child: Text(deck.finished ? 'القائمة الرئيسية' : handoff
+                      ? 'اكشف السؤال الجديد 👀' : 'سلّمت الموبايل ✅'),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
