@@ -1,39 +1,40 @@
-# Pass The Phone | ادّي الموبايل
-An offline Egyptian Arabic party game built in Flutter.
+# Pass The Phone — Flutter v0.2
 
-## Setup (Windows / VS Code)
-```powershell
-flutter create --org com.passthephone pass_the_phone
-cd pass_the_phone
-```
-Copy `lib/main.dart`, `assets/data/questions.json`, `pubspec.yaml`, and `test/game_deck_test.dart` from this starter package into the new Flutter project (replace existing files). Delete the generated `test/widget_test.dart`, since it tests the default counter app. Then:
-```powershell
+Offline Egyptian Arabic party game with clean feature-first structure.
+
+## Included
+- 125 curated Arabic questions across friends/love/savage/family
+- Custom questions (category specific or custom-only) saved locally
+- Unlimited or 10/20/30/50 rounds, with fresh shuffle cycles
+- Theme: system/light/dark, persisted locally
+- Animated question reveal / handoff
+- Pure Dart game session model + unit tests
+
+## Install into existing Flutter repository
+
+Copy `lib/`, `assets/`, `test/` and the dependency/assets entries from `pubspec.yaml` into your existing project. **Keep your existing `.git`, `android`, `web`, `ios`, and native project files.** The Dart package name in this archive is `pass_the_phone`; if your own pubspec `name:` differs, update test imports accordingly.
+
+```sh
 flutter pub get
-flutter run
+flutter analyze
 flutter test
+flutter run
 ```
-
-## Gameplay
-1. Start a game mode.
-2. Player reads a prompt and hands the phone to someone matching it.
-3. The receiving player taps `سلّمت الموبايل` or the previous player taps it before handing off.
-4. New player taps `اكشف السؤال الجديد`, reads their prompt and passes again.
-5. Questions are shuffled once and never repeated within one round.
 
 ## Structure
-- `lib/main.dart`: MVP home screen, game screen, repository, question deck.
-- `assets/data/questions.json`: Egyptian Arabic prompts organized by mode.
 
-## Planned
-- Add more curated prompts, custom questions, adjustable round length, animated transitions, testing, local session persistence.
+`lib/core`: model, local storage, session state logic, themes.
+`lib/features`: independent screen features.
+`lib/app`: application bootstrap.
 
-## GitHub
-Create an empty public GitHub repository called `pass-the-phone-eg` with **no README** (already included by this starter project). From the Flutter project directory:
-```powershell
-git add .
-git commit -m "feat: initial offline Flutter party game MVP"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/pass-the-phone-eg.git
-git push -u origin main
-```
-If git says this is not a repository, run `git init` before the add command.
+## Release checklist
+- Set stable applicationId unique to you; configure signing and Play App Bundle
+- Confirm Android targetSdk 36+, test release build on physical phones
+- Privacy policy / Data Safety / content rating / store assets / testing requirements
+- Keep advertising SDK and permissions out until monetization is introduced
+
+## Storage
+Questions and theme are stored with shared_preferences. This is convenient for local settings but **not a backup system**. A future version should add import/export for user-created questions.
+
+## Caveat
+Flutter SDK was not installed in the artifact environment. Run `flutter analyze` and `flutter test` locally before accepting this as release-ready.
