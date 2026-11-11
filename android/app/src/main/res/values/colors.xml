@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand purple from approved adaptive_background (#2C087B) -->
+    <color name="splash_background">#FF2C087B</color>
+</resources>
