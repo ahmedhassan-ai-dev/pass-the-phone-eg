@@ -5,6 +5,7 @@ import '../../core/services/app_store.dart';
 import '../game/game_screen.dart';
 import '../questions/custom_questions_screen.dart';
 import '../settings/settings_screen.dart';
+import '../../core/widgets/press_scale.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppStore store;
@@ -98,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const Spacer(),
                           Text(
-                            'THE PARTY STARTS HERE',
+                            'PASS IT ON',
                             style: t.textTheme.labelSmall?.copyWith(
                               color: scheme.onPrimaryContainer.withValues(
                                 alpha: 0.74,
@@ -110,19 +111,43 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 25),
                       Text(
-                        'مين في الشلة؟',
+                        'الدور على مين؟',
                         style: t.textTheme.headlineLarge?.copyWith(
                           color: scheme.onPrimaryContainer,
                         ),
                       ),
                       const SizedBox(height: 7),
                       Text(
-                        'اقرأ السؤال. اختار الشخص. ادّيله الموبايل.',
+                        'سؤال واحد ممكن يقلب القعدة كلها.',
                         style: t.textTheme.bodyLarge?.copyWith(
                           color: scheme.onPrimaryContainer,
                         ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                PressScale(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        if (widget.store.hapticsEnabled)
+                          HapticFeedback.selectionClick();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GameScreen(
+                              session: widget.store.startGame('friends'),
+                              category: gameCategories.first,
+                              hapticsEnabled: widget.store.hapticsEnabled,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.flash_on_rounded),
+                      label: const Text('Quick Play  ·  العب على طول'),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -158,7 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(24),
                               onTap: () {
-                                HapticFeedback.selectionClick();
+                                if (widget.store.hapticsEnabled)
+                                  HapticFeedback.selectionClick();
                                 setState(() => selected = c.id);
                               },
                               child: Padding(
@@ -197,13 +223,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                         color: scheme.onSurfaceVariant,
                                       ),
                                     ),
-                                    const SizedBox(height: 9),
-                                    Text(
-                                      '${widget.store.countFor(c.id)} سؤال',
-                                      style: t.textTheme.labelSmall?.copyWith(
-                                        color: scheme.primary,
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -237,7 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: Text(option == null ? '∞ مفتوح' : '$option'),
                         selected: maxRounds == option,
                         onSelected: (_) {
-                          HapticFeedback.selectionClick();
+                          if (widget.store.hapticsEnabled)
+                            HapticFeedback.selectionClick();
                           setState(() => maxRounds = option);
                         },
                       ),
@@ -250,7 +270,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: count == 0
                         ? null
                         : () {
-                            HapticFeedback.mediumImpact();
+                            if (widget.store.hapticsEnabled)
+                              HapticFeedback.mediumImpact();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -260,6 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     limit: maxRounds,
                                   ),
                                   category: category,
+                                  hapticsEnabled: widget.store.hapticsEnabled,
                                 ),
                               ),
                             );

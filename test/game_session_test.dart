@@ -52,6 +52,32 @@ void main() {
     expect(seen, ['3', '2']);
   });
 
+  test('handoff disabled shows the next question immediately', () {
+    final game = GameSession(
+      questions,
+      handoffEnabled: false,
+      random: Random(12),
+    );
+    final before = game.current.id;
+    game.handOff();
+    expect(game.phase, GamePhase.question);
+    expect(game.round, 2);
+    expect(game.current.id, isNot(before));
+  });
+
+  test('handoff disabled still ends after configured rounds', () {
+    final game = GameSession(
+      questions,
+      limit: 2,
+      handoffEnabled: false,
+      random: Random(14),
+    );
+    game.handOff();
+    expect(game.phase, GamePhase.question);
+    game.handOff();
+    expect(game.phase, GamePhase.finished);
+  });
+
   test('empty questions rejected', () {
     expect(() => GameSession([]), throwsArgumentError);
   });

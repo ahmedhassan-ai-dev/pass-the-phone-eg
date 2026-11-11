@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/models/game_category.dart';
 import '../../core/services/game_session.dart';
+import '../../core/widgets/press_scale.dart';
 
 class GameScreen extends StatefulWidget {
   final GameSession session;
   final GameCategory category;
-  const GameScreen({super.key, required this.session, required this.category});
+  final bool hapticsEnabled;
+  const GameScreen({
+    super.key,
+    required this.session,
+    required this.category,
+    this.hapticsEnabled = true,
+  });
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -19,10 +26,10 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
     if (session.phase == GamePhase.question) {
-      HapticFeedback.mediumImpact();
+      if (widget.hapticsEnabled) HapticFeedback.mediumImpact();
       setState(session.handOff);
     } else {
-      HapticFeedback.lightImpact();
+      if (widget.hapticsEnabled) HapticFeedback.lightImpact();
       setState(session.revealNext);
     }
   }
@@ -133,12 +140,12 @@ class _GameScreenState extends State<GameScreen> {
                                 opacity: animation,
                                 child: ScaleTransition(
                                   scale: Tween<double>(
-                                    begin: 0.94,
+                                    begin: 0.90,
                                     end: 1,
                                   ).animate(animation),
                                   child: SlideTransition(
                                     position: Tween<Offset>(
-                                      begin: const Offset(0, 0.06),
+                                      begin: const Offset(0, 0.14),
                                       end: Offset.zero,
                                     ).animate(animation),
                                     child: child,
@@ -224,23 +231,27 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: advance,
-                        icon: Icon(
-                          finished
-                              ? Icons.home_rounded
-                              : handoff
-                              ? Icons.visibility_rounded
-                              : Icons.arrow_back_rounded,
-                        ),
-                        label: Text(
-                          finished
-                              ? 'الرئيسية'
-                              : handoff
-                              ? 'اكشف السؤال'
-                              : 'سلّمت الموبايل',
+                    PressScale(
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: advance,
+                          icon: Icon(
+                            finished
+                                ? Icons.home_rounded
+                                : handoff
+                                ? Icons.visibility_rounded
+                                : Icons.arrow_back_rounded,
+                          ),
+                          label: Text(
+                            finished
+                                ? 'الرئيسية'
+                                : handoff
+                                ? 'اكشف السؤال'
+                                : session.handoffEnabled
+                                ? 'سلّمت الموبايل'
+                                : 'السؤال التالي',
+                          ),
                         ),
                       ),
                     ),

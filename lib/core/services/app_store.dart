@@ -8,6 +8,8 @@ import 'game_session.dart';
 
 class AppStore extends ChangeNotifier {
   static const _themeKey = 'ptp_theme_v2';
+  static const _handoffKey = 'ptp_handoff_enabled_v5';
+  static const _hapticsKey = 'ptp_haptics_enabled_v5';
   static const _customKey = 'ptp_custom_questions_v2';
   static const _deckKey = 'ptp_remaining_decks_v4';
   static const _knownKey = 'ptp_known_decks_v4';
@@ -18,6 +20,8 @@ class AppStore extends ChangeNotifier {
   Map<String, List<String>> _remaining = {};
   Map<String, List<String>> _known = {};
   ThemeMode themeMode = ThemeMode.system;
+  bool handoffEnabled = true;
+  bool hapticsEnabled = true;
 
   List<PartyQuestion> get customQuestions => List.unmodifiable(_custom);
   int countFor(String category) => available(category).length;
@@ -101,7 +105,21 @@ class AppStore extends ChangeNotifier {
       'light' => ThemeMode.light,
       _ => ThemeMode.system,
     };
+    handoffEnabled = await _prefs.getBool(_handoffKey) ?? true;
+    hapticsEnabled = await _prefs.getBool(_hapticsKey) ?? true;
     notifyListeners();
+  }
+
+  Future<void> setHandoffEnabled(bool enabled) async {
+    handoffEnabled = enabled;
+    notifyListeners();
+    await _prefs.setBool(_handoffKey, enabled);
+  }
+
+  Future<void> setHapticsEnabled(bool enabled) async {
+    hapticsEnabled = enabled;
+    notifyListeners();
+    await _prefs.setBool(_hapticsKey, enabled);
   }
 
   GameSession startGame(String category, {int? limit}) {
@@ -138,6 +156,7 @@ class AppStore extends ChangeNotifier {
       questions,
       limit: limit,
       initialOrder: ordered,
+      handoffEnabled: handoffEnabled,
       onQuestionShown: (id) => _recordShown(category, id),
     );
   }

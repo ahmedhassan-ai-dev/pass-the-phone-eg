@@ -7,6 +7,7 @@ enum GamePhase { question, handoff, finished }
 class GameSession {
   final List<PartyQuestion> _source;
   final int? limit;
+  final bool handoffEnabled;
   final Random _random;
   final void Function(String)? onQuestionShown;
   late List<PartyQuestion> _deck;
@@ -18,6 +19,7 @@ class GameSession {
   GameSession(
     List<PartyQuestion> questions, {
     this.limit,
+    this.handoffEnabled = true,
     Random? random,
     List<PartyQuestion>? initialOrder,
     this.onQuestionShown,
@@ -40,11 +42,21 @@ class GameSession {
   bool get isUnlimited => limit == null;
 
   void handOff() {
-    if (phase == GamePhase.question) phase = GamePhase.handoff;
+    if (phase == GamePhase.question) {
+      if (handoffEnabled) {
+        phase = GamePhase.handoff;
+      } else {
+        _moveNext();
+      }
+    }
   }
 
   void revealNext() {
     if (phase != GamePhase.handoff) return;
+    _moveNext();
+  }
+
+  void _moveNext() {
     if (limit != null && round >= limit!) {
       phase = GamePhase.finished;
       return;
