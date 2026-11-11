@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/party_question.dart';
 import 'game_session.dart';
+import 'haptic_service.dart';
 
 class AppStore extends ChangeNotifier {
   static const _themeKey = 'ptp_theme_v2';
@@ -16,8 +17,12 @@ class AppStore extends ChangeNotifier {
   static const _knownKey = 'ptp_known_decks_v4';
   final SharedPreferencesAsync _prefs;
 
-  AppStore({SharedPreferencesAsync? preferences})
-    : _prefs = preferences ?? SharedPreferencesAsync();
+  final Duration Function()? _hapticElapsed;
+  AppStore({
+    SharedPreferencesAsync? preferences,
+    Duration Function()? hapticElapsed,
+  }) : _prefs = preferences ?? SharedPreferencesAsync(),
+       _hapticElapsed = hapticElapsed;
   final Random _random = Random.secure();
   List<PartyQuestion> _builtIn = [];
   List<PartyQuestion> _custom = [];
@@ -26,6 +31,10 @@ class AppStore extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.system;
   bool handoffEnabled = true;
   bool hapticsEnabled = true;
+  late final HapticService haptics = HapticService(
+    isEnabled: () => hapticsEnabled,
+    elapsed: _hapticElapsed,
+  );
   bool surpriseEnabled = false;
 
   List<PartyQuestion> get customQuestions => List.unmodifiable(_custom);

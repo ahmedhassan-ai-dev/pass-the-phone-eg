@@ -4,7 +4,7 @@ Executed 2026-11-11 (Africa/Cairo) on branch `chore/v07-production-hardening`, s
 
 ## Readiness
 
-**Not ready for store release.** Signed AAB verification, official bundletool validation/APK generation and static 16 KB ELF/ZIP alignment checks have passed; see the follow-ups below. The JarInputStream discrepancy is explained and byte-equivalence checked without altering the archive. The owner has now reported manual PASS results on a Samsung SM-A225F release APK, recorded separately from tool-executed evidence in the latest follow-up and [REAL_DEVICE_QA.md](REAL_DEVICE_QA.md). Same-package upgrade, TalkBack, maximum font scaling, Android 15/16 edge-to-edge, process death and 16 KB runtime remain unverified, alongside final icon, Play validation and owner policy/listing review. Earlier unsigned artifact evidence is historical. CI is configured but no green hosted run is claimed here.
+**Not ready for store release.** The owner has confirmed production native vibration perceptibility and Haptics OFF suppression PASS on Samsung SM-A225F; these are owner-reported manual results, recorded in the latest follow-up below. Fresh signed APK/AAB build/signature evidence is recorded separately. Exact cooldown timing, action-by-action duration tuning and process-death persistence remain unverified on hardware. Earlier gameplay/bundletool/16 KB evidence applies to its recorded artifacts, not automatically to the rebuilt candidate. Same-package upgrade, TalkBack, maximum font scaling, Android 15/16 edge-to-edge and 16 KB runtime remain unverified, alongside final icon, Play validation and owner policy/listing review. The JarInputStream ordering discrepancy remains explained; fresh JarFile verification and byte comparison passed. GitHub CI status must be checked against the pushed commit; earlier results are not evidence for that commit.
 
 ## Original hardening commands (before permanent identity approval)
 
@@ -244,3 +244,232 @@ The actual manual execution date, installed APK hash/version/certificate, detail
 **Still NOT RUN / unverified in this record:** same-package upgrade, TalkBack, maximum font/display scaling, Android 15/16 edge-to-edge, process death and 16 KB runtime. Other unchecked detailed cases in [REAL_DEVICE_QA.md](REAL_DEVICE_QA.md), including explicit background/foreground and system-theme sequences, remain open until supported by specific evidence. No such case was marked PASS based on a broader confirmation. Release readiness remains incomplete.
 
 Only non-secret documentation was edited. No application/gameplay/storage changes, credential access, new tests/builds, merge or app publication were performed for this update. The documentation updates, including the preceding uncommitted signed-AAB/bundletool evidence and QA plan, are the only files intended for commit/push to the existing hardening branch.
+
+## BUG-001 — Samsung SM-A225F haptic feedback — 2026-11-11
+
+Status: **implementation and automated checks complete; physical-device retest pending**. Owner reported that haptic feedback was not perceptible in v0.7 on Samsung SM-A225F. This overrides any assumption that the earlier general UI/gameplay PASS covered vibration. Physical vibration has not been confirmed after this change.
+
+### Inspection and change
+
+Reviewed every application HapticFeedback call and HomeScreen, GameScreen, SettingsScreen and AppStore. Existing category/round/Quick Play and question-transition feedback mostly used selectionClick; normal game start used mediumImpact. The haptics switch already loads/saves the existing `ptp_haptics_enabled_v5` boolean, defaulting to true when absent. No broken preference key was found. GameScreen previously received a bool snapshot; it now receives the store's shared HapticService, which reads the current value on every request.
+
+Added lib/core/services/haptic_service.dart using Flutter built-in APIs only. No dependency, Android permission, upload-signing or application ID change was made. The service gates all app-requested pulses behind the current saved setting and tolerates unsupported-platform/channel errors without interrupting play.
+
+| Deliberate action | Requested feedback |
+| --- | --- |
+| Changed category or round selection | One lightImpact. Tapping an already-selected value is silent. |
+| Quick Play / normal game start | One lightImpact from the initiating button; no additional pulse when the first question builds. |
+| Pass-phone action with handoff ON | One mediumImpact when entering handoff. |
+| Reveal next question / next question with handoff OFF | One lightImpact when a new question is displayed. |
+| Screen build, reload, theme/settings changes, finite-session finish | No app-requested pulse. |
+| Any action with haptics OFF | No app-requested pulse. |
+
+There are no vibration loops, heavy impacts or stacked pulses. AppTheme disables tooltip long-press feedback so Flutter's default tooltip vibration cannot bypass the persisted OFF setting. SettingsScreen's existing switch and persistence method remain unchanged. GameSession, question content, queue logic, saved keys and preference backend are unchanged.
+
+This selects different platform feedback types; it does not prove a minimum physical amplitude or diagnose Samsung firmware/system settings. Flutter maps [lightImpact](https://api.flutter.dev/flutter/services/HapticFeedback/lightImpact.html) to Android VIRTUAL_KEY and [mediumImpact](https://api.flutter.dev/flutter/services/HapticFeedback/mediumImpact.html) to KEYBOARD_TAP. Hardware/platform policy controls whether/how those effects are felt. No lower-level vibration dependency was added because a built-in API retest has not yet demonstrated that one is necessary.
+
+### Executed automated evidence
+
+New test/haptic_feedback_test.dart mocks SystemChannels.platform and checks HapticFeedback.vibrate method arguments, not a motor:
+
+- Exact action sequence lightImpact / mediumImpact / lightImpact, once per request.
+- All service actions suppressed while OFF; live setting changes respected without replacing an existing game route.
+- Both ON and OFF persisted through the original preference key and reload, including interaction with the actual settings switch.
+- Home category/round/start and game pass/reveal actions emit the intended sequence while enabled and no pulse while disabled.
+- Quick Play emits one initial pulse, with no automatic build/reveal pulse, with handoff both ON and OFF.
+- Finite-session endings do not emit a fake reveal pulse in either handoff mode.
+- Theme/preference rebuilds and loading are silent; tooltip long press cannot vibrate while OFF.
+- Missing/unsupported platform implementations do not fail gameplay callbacks.
+
+| Command | Actual result |
+| --- | --- |
+| `flutter test test/haptic_feedback_test.dart` | Exit 0, nine new tests passed (initial focused run). |
+| `dart format lib test` | Final run: 20 files, zero changes. |
+| `dart format --output=none --set-exit-if-changed lib test` | Exit 0, 20 files, zero changes. |
+| `flutter analyze` | Exit 0, no issues (1.3 seconds). |
+| `flutter test` | Exit 0, all **32 tests passed**, including nine haptic tests and existing storage/gameplay regressions. The final full run includes the additional persisted-ON reload assertion. |
+| `git diff --check` | Exit 0. |
+
+**Unit/widget tests cannot confirm actual physical vibration, intensity or perceptibility on Samsung SM-A225F.** They prove requested platform calls and suppression logic only. No device test or release build was run in this task. Existing release artifacts are unchanged and do not contain this source fix; their prior build/signature evidence must not be presented as validation of BUG-001.
+
+Read-only artifact references: AAB SHA-256 `370F152F315EA1973D64D8CA869E897C3FEB7D63DABD4D6E0646F91FA66C3CEA`; existing APK SHA-256 `BA63987C9E98CDF724886CDCDB1447C500DE5C1819D34735ABA0E154921CB479`. No artifact was rewritten. No credentials were accessed, no keys generated, no merge or publication performed.
+
+### Owner-device retest steps — NOT RUN
+
+1. Obtain a separately authorized release candidate built from this fix. Record source revision, APK hash/version, permanent package ID and compatible public signer certificate. The unchanged APK/AAB currently on disk predate this fix. Install the candidate in place on the Samsung SM-A225F without uninstalling or clearing data; retain existing custom questions/settings/rotation progress.
+2. Record Android/One UI version and device vibration/touch-feedback settings/intensity. Test with system touch feedback enabled at a comfortable level; do not override the owner's preferences. Note any power-saving/DND setting if relevant. Confirm the phone's system haptics work outside the app as a hardware baseline.
+3. In app settings, enable haptics. Change category and round choice: expect one brief light pulse per changed selection. Tap the already-selected category/round: expect none. Start via Quick Play and normal start: expect one brief start pulse and none from subsequent idle frames/rebuilds.
+4. With handoff ON, tap pass phone: expect one medium pulse. Tap reveal: expect one light pulse. With handoff OFF in a new game, each next-question tap should give one light pulse. Confirm the final finish/home action does not cause an extra reveal vibration. Record whether each effect is perceptible and comfortable; medium need not feel stronger than light on every device.
+5. Turn app haptics OFF. Repeat category/round/start/pass/reveal/next and long-press a tooltip: expect no app-requested vibration. Repeat several taps at an ordinary pace; confirm no duplicate/burst feedback. Verify gameplay still works identically.
+6. Leave and reopen the app with haptics OFF; confirm the switch stays OFF and the actions stay silent. Enable it, reopen, and confirm it stays ON and pulses return. Confirm retained custom questions and normal unseen-question rotation are unaffected. This ordinary persistence check does not by itself establish process-death or same-package upgrade coverage.
+7. If feedback remains imperceptible with the built-in effects, report exact candidate hash, system settings and which actions fail, without credentials or personal questions. Keep BUG-001 open for device-specific investigation; only then consider whether a lower-level approach/dependency is justified. Record PASS/FAIL separately for perceptibility, OFF suppression and persistence; do not infer a hardware PASS from these automated tests.
+
+## BUG-001 connected Samsung investigation — 2026-11-11 (Africa/Cairo)
+
+Status: **latest centralized Flutter feedback is installed; native comparison prepared; physical perceptibility not confirmed**. Work continues on chore/v07-production-hardening with the preceding source fix preserved. The owner reports that feedback remains imperceptible. No uninstall, data clear, production preference read/edit or signed release replacement was performed.
+
+### Installed release identity and code evidence
+
+Read-only `adb shell pm path` / filtered `dumpsys package` and `adb pull <public base APK path>` collected the installed application binary, not private user storage. Package is `com.ahmedhassan.passthephone`, versionName 0.7.0 / versionCode 7, min SDK 24, target SDK 36. Package flags do not include DEBUGGABLE.
+
+Installed APK SHA-256 is `2FCE4F44D57CCD13048B864E51231E1E4B18EA156CF8A608603BE265753A1B8A`, identical to the current local app-release.apk. It differs from the pre-fix APK recorded in the preceding report, so the owner has supplied a later build. `apksigner verify --verbose --print-certs` succeeded: one signer, APK v2 verified. Public certificate SHA-256 is `68F696A7F48ED756C42543A0D3AE22D66F4EC758FF863AC92F2FD367F0679575`, matching the previously documented upload certificate. This establishes compatibility with that local release signing identity, not Play's possibly separate app-signing certificate.
+
+The installed arm64 libapp.so SHA-256 is `C2738E398A3A411EE8D093928CFAA736E5226DAA62BDFCD1CC650013F2FA3DB0`, identical to the local stripped release library. ELF build ID `489586309727de14643bd72177fec9fa` matches the local release symbol file. llvm-nm lists HapticService._emit, HapticService.passPhone, HapticService.selection and Flutter lightImpact/mediumImpact symbols. Disassembly of _GameScreenState.advance calls HapticService.passPhone for handoff and the light selection implementation for reveal (the optimizer shares the identical light methods). The binary also contains HapticService and both effect strings. Together these checks establish that the installed release contains the centralized feedback fix, rather than inferring it from unchanged versionCode 7 alone. There is no embedded Git revision marker, so no claim of immutable commit provenance is made.
+
+### Non-destructive device inspection
+
+Observed Samsung SM-A225F, Android 13 / API 33, One UI property 50100. Commands read settings and a filtered vibrator-manager capability dump; no system settings were written and no shell vibration command was executed.
+
+| Observed setting/capability | Actual value / limit |
+| --- | --- |
+| system haptic_feedback_enabled | 1 (enabled) |
+| Samsung VIB_FEEDBACK_MAGNITUDE | 1; OEM-specific value, not a calibrated amplitude measurement. |
+| SEM_VIBRATION_FORCE_TOUCH_INTENSITY | 4; OEM-specific scale. |
+| SEM_VIBRATION_NOTIFICATION_INTENSITY / VIB_RECVCALL_MAGNITUDE | 5 / 5; notification/ringing settings do not prove touch effects work. |
+| generic haptic_feedback_intensity, touch_vibration_intensity, vibration_intensity | null (these keys are absent; not evidence that all vibration is disabled). |
+| global zen_mode / low_power | 0 / 0. |
+| vibrator-manager hardware report | Vibrator ID 0 loaded successfully, capabilities flags 0, no predefined supported effects/braking, only PRIMITIVE_NOOP, no frequency profile; not vibrating at inspection time. |
+
+The capability report suggests no programmable amplitude/composition capability exposed by this device. It does not prove the motor is absent, broken, or unable to execute a timed one-shot. The release app's private persisted haptics toggle was not retrieved; the owner should confirm it is ON through the app UI. Earlier mocked tests establish the source storage/gating logic, not the installed motor's behavior.
+
+### Why compare APIs
+
+Flutter HapticFeedback requests platform semantic UI effects through SystemChannels.platform. On Android, lightImpact maps to VIRTUAL_KEY and mediumImpact to KEYBOARD_TAP via View.performHapticFeedback; those constants do not promise a particular amplitude/duration or perceptible difference on Samsung firmware. They require no application VIBRATE permission and follow platform touch-feedback behavior.
+
+Native Vibrator/VibrationEffect can request a timed one-shot instead of relying on an OEM's semantic-effect mapping. It requires VIBRATE permission. Hardware capability checks matter: without amplitude control, choosing a fractional amplitude does not guarantee a quieter pulse. The diagnostic therefore uses one fixed **50 ms**, DEFAULT_AMPLITUDE touch/sonification request, with no waveform, repetition or escalating intensity. It also respects the system touch-feedback switch. No physical superiority or perceptibility is inferred from an accepted API call.
+
+Official references: [Flutter lightImpact](https://api.flutter.dev/flutter/services/HapticFeedback/lightImpact.html), [Flutter mediumImpact](https://api.flutter.dev/flutter/services/HapticFeedback/mediumImpact.html), [Android haptic feedback](https://developer.android.com/develop/ui/views/haptics/haptic-feedback), [Vibrator capabilities](https://developer.android.com/reference/android/os/Vibrator), [VibrationEffect](https://developer.android.com/reference/android/os/VibrationEffect).
+
+### Isolated opt-in diagnostic implementation
+
+Added a separate Dart entrypoint, lib/diagnostics/haptic_diagnostic_main.dart, which is debug-only and does not load AppStore or preferences. An explicit `-PhapticDiagnostic=true` adds `.hapticdiagnostic` to the **debug** application ID only and selects a separately labelled diagnostic launcher. Production applicationId, namespace, main activity, upload signing settings and persisted keys are unchanged. Native HapticDiagnosticActivity and VIBRATE permission exist only in android/app/src/debug; the main/release manifest has no new permission or diagnostic activity.
+
+The screen defaults OFF. Capability lookup/build/opt-in alone never vibrate. The owner must tap Light, Medium or Native to request a comparison. Dart gates all three through opt-in and an 800 ms cooldown. The debug-only native MethodChannel independently requires enabled=true, system touch feedback enabled, foreground focus and cooldown; it accepts no caller-supplied duration/amplitude/repeat. It caps the single request at 50 ms, checks hasVibrator(), reports errors and cancels its own vibration on pause. No runtime dependency was added.
+
+Production native fallback is **not implemented or enabled**: the requested condition is owner confirmation that native feedback is better. A device-capability report, passing unit test or submitted request is insufficient. If confirmed later, integrate a minimal production bridge with the persisted OFF gate, capped one-shot and no repeated pulses, then test and revalidate the resulting release permission. Until that confirmation, the production service remains built-in Flutter only.
+
+### Executed diagnostic checks and deployment
+
+| Command/check | Actual result |
+| --- | --- |
+| `flutter test` | Exit 0, all 35 tests passed, including existing storage/gameplay/haptics regressions and three diagnostic tests. |
+| `flutter analyze` | Initial one brace lint in new test corrected; final exit 0, no issues (1.9 seconds). |
+| `flutter test test/haptic_diagnostic_test.dart` | Final focused run exit 0, three tests passed: default-OFF suppression/capability lookup, exact light/medium/native calls with cooldown and OFF gate, and no vibration from widget build or enabling alone. |
+| `flutter build apk --debug --target=lib/diagnostics/haptic_diagnostic_main.dart -PhapticDiagnostic=true -PunsignedSmokeBuild=true` | Exit 0, assembleDebug 155.5 seconds. Native Kotlin diagnostic compiled successfully. Existing upload-signing configuration was not changed; the smoke property bypasses upload signing for this debug build. Gradle's existing properties-loading code is unchanged; no credential contents were printed or manually inspected. |
+| aapt2 / apksigner inspection of app-debug.apk | Confirmed isolated package com.ahmedhassan.passthephone.hapticdiagnostic, DEBUGGABLE, version 0.7.0-hapticdiagnostic+7, VIBRATE permission and a valid debug-signed APK. Public debug certificate SHA-256: 39C0E4432425161E87FCF3DCB5F567FFE09CE9EF12942A9836BD40369C414C4A. Different from the release certificate, as expected. |
+| `adb install <app-debug.apk>` | Success; installed the separate diagnostic package, not an update to the release package. No uninstall or clear-data command was used. |
+| Explicit am start of diagnostic package/HapticDiagnosticActivity | Succeeded; dumpsys window confirmed the diagnostic activity in foreground. Launcher resolution independently resolves to HapticDiagnosticActivity; the ordinary MainActivity is disabled for this opt-in debug variant. |
+| Post-install public release APK sha256sum / pm path | Original release path unchanged; SHA-256 still 2FCE4F44D57CCD13048B864E51231E1E4B18EA156CF8A608603BE265753A1B8A. It remains separately installed and signed with the original certificate. |
+| Release manifest/source inspection | Main/release manifest and MainActivity unchanged; VIBRATE is absent from the installed release APK. No production native fallback or release rebuild was performed. |
+| `git diff --check` | Exit 0. |
+
+Debug APK SHA-256: `832F8F4BD450CC586DCC3655836AC0E160F33DFC3EC7D25E91EBB3ED04036FB4`. Existing signed AAB remains `370F152F315EA1973D64D8CA869E897C3FEB7D63DABD4D6E0646F91FA66C3CEA`.
+
+The attempted read-only UI capability extraction did not produce capability values (/dev/tty returned only its completion message); a subsequent foreground guard detected that the diagnostic was no longer foreground and skipped reading another screen. No hasVibrator()/hasAmplitudeControl() result from the app UI is claimed. The filtered system dumpsys capability observations above remain the actual device evidence. No automated tap or shell command triggered a comparison pulse.
+
+### Required owner comparison and remaining blocker
+
+A comparison question was sent to the owner after the diagnostic installed/launched. **No physical result has yet been received.** In the separate “Pass The Phone · Haptic Diagnostic” app:
+
+1. Enable manual vibration tests (no pulse should occur just from enabling).
+2. Tap Flutter light, Flutter medium and Native one 50 ms pulse, leaving at least one second between them. Read any blocked/error result; a submitted/completed message is not proof of physical vibration.
+3. Report separately which effects are physically felt and whether native is more perceptible/comfortable. Turn OFF and confirm further test buttons are disabled/silent.
+4. Confirm the production game's haptics switch is ON using its UI before comparing production behavior. Do not uninstall it or clear its settings/custom questions/queues. No private preferences were accessed during this investigation.
+
+Until the owner confirms the native effect is better, BUG-001 remains open and adding native VIBRATE behavior to production is intentionally pending that required evidence. If neither effect is felt, examine the diagnostic capability/error display and Samsung settings/hardware before selecting a fallback. No hardware PASS, device-compatibility fix, native superiority, same-package upgrade test or production release approval is claimed. No PR was merged or anything published; changes remain local on the hardening branch.
+
+## BUG-001 production native feedback — 2026-11-11 (Africa/Cairo)
+
+The owner explicitly confirmed that the isolated native 50 ms diagnostic pulse is physically perceptible on Samsung SM-A225F while Flutter built-in feedback remains imperceptible. This is **owner-reported diagnostic evidence**, satisfying the condition for native integration. It is not confirmation of the production release or of the shorter 20/30 ms effects. This section supersedes the earlier pending-comparison status.
+
+### Production implementation
+
+HapticService now uses the minimal Android channel `com.ahmedhassan.passthephone/haptics`, method pulse with enabled=true and durationMs. It reads the existing live AppStore haptics setting before every request; OFF sends no pulse. No preference key/backend changed. Built-in Flutter feedback remains the gated path on non-Android platforms only; Android errors or missing hardware do not trigger a second fallback pulse.
+
+| Action | Initial one-shot duration |
+| --- | --- |
+| Changed category / round selection | 20 ms |
+| Quick Play / normal game start | 30 ms |
+| Pass-phone action | 50 ms |
+| Question reveal / next question without handoff | 30 ms |
+
+These are initial timing values, not guaranteed physical intensity or confirmed perceptibility. Same-selection taps, builds, settings/theme changes, navigation dialogs and finished-session return actions do not add feedback. The service uses a monotonic clock and a 120 ms cooldown; rapid requests are dropped, never delayed, retried or repeated. A test-only clock seam makes suppression deterministic in tests without changing production timing.
+
+MainActivity implements the native channel. It accepts only the 20/30/50 ms values (maximum 50 ms), enabled=true, foreground focus and enabled system touch feedback; it checks hasVibrator(), uses a second monotonic 120 ms cooldown and performs exactly one VibrationEffect.createOneShot(duration, DEFAULT_AMPLITUDE) on API 26+. API 24/25 retain a short legacy timed fallback for the existing minimum SDK. It uses touch/sonification audio attributes and cancels its own request on activity pause. Missing hardware, permission/vendor runtime errors and unavailable channels do not interrupt gameplay. A true result means only that the request was submitted.
+
+The main manifest adds only the necessary normal Android VIBRATE permission. Application ID/namespace and upload-signing configuration are unchanged. Diagnostic Dart UI/entrypoint, debug Kotlin activity/channel, diagnostic test and debug package-suffix/launcher configuration were removed from the working source. The separate diagnostic installation was not uninstalled or touched; it is not part of the production release. No runtime dependency, question content, queue/session logic, stored preference key or gameplay rule changed. The existing centralized-tooltip feedback suppression remains in place so OFF is not bypassed by tooltips.
+
+### Automated checks
+
+Updated test/haptic_feedback_test.dart mocks both the production native MethodChannel and SystemChannels.platform. It covers all four action durations, enabled/disabled behavior, saved ON/OFF reload, live toggle changes in an existing game route, the 120 ms cooldown boundary and burst dropping, no queued pulse after OFF, missing-hardware false responses, PlatformException/MissingPluginException with no Android Flutter fallback, Quick Play/normal navigation, handoff ON/OFF, silence on build/settings/tooltip/finish, and cancel/confirm exit flow. Existing storage migration and question-bank tests remain included.
+
+The first focused run exposed a test-harness invariant violation from unnecessarily setting a Flutter global platform override; the override was removed. Final executed results:
+
+- `dart format lib test`: exit 0, final 20 files / zero changes.
+- `dart format --output=none --set-exit-if-changed lib test`: exit 0, 20 files / zero changes.
+- `flutter analyze`: exit 0, no issues (1.3 seconds).
+- `flutter test`: exit 0, all **35 tests passed** (23 existing tests plus 12 haptic tests; obsolete diagnostic-only tests removed).
+- `git diff --check`: exit 0.
+
+These tests verify requested native calls/gating and navigation logic, not physical vibration or native hardware runtime behavior. The native implementation is also compiled by the release builds recorded below.
+
+### Fresh signed release build and artifact evidence
+
+Built locally using the existing private signing configuration, with no unsigned smoke flag. No credential file or private key was opened for inspection or printed; Gradle consumed the existing configuration internally for the requested signing. Upload signing blocks and application ID/namespace are unchanged. key.properties remains ignored/untracked; a tracked-credential filename check returned zero files. No new key was created. Nothing was installed on the Samsung in this production-fix task.
+
+| Command / inspection | Actual result |
+| --- | --- |
+| `flutter build apk --release` | Exit 0, assembleRelease 104.4 seconds; 49.0 MB, 51,390,336-byte signed APK. Kotlin native production handler compiled successfully. |
+| `flutter build appbundle --release` | Exit 0, bundleRelease 14.5 seconds; 48.1 MB, 50,461,014-byte signed AAB. |
+| SDK 36 `apksigner verify --verbose --print-certs .../app-release.apk` | Exit 0, Verifies, one signer, APK Signature Scheme v2 verified. Public certificate matches the existing owner upload certificate. v1/v3/v3.1/v4 were reported false; these are not assertions that those schemes were enabled. |
+| SDK 36 aapt2 badging/permission dump | Package com.ahmedhassan.passthephone, version 0.7.0 / code 7, min SDK 24, target/compile SDK 36, MainActivity launcher, not DEBUGGABLE. Permissions: VIBRATE plus the existing app-scoped signature-level DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION; no INTERNET/AD_ID added to release. |
+| Compiled APK classes.dex string inspection | Production /haptics channel present; /haptic_diagnostic and HapticDiagnosticActivity absent. No diagnostic UI entrypoint is referenced by the production Dart main. |
+| `jarsigner -verify -verbose -certs .../app-release.aab` | Exit 0 and explicit jar verified; jar is unsigned absent. Full non-secret output saved under build/bug001_production_verification/jarsigner.log. |
+| Read-only JarFile/JarInputStream comparison on fresh AAB | Exit 0; 394 entries in each reader with identical per-entry SHA-256, 392 signed entries recognized by JarFile (391 payload entries plus manifest); no signed entries recognized by JarInputStream because of the previously documented late-manifest ordering. Signer fingerprint matches the APK. |
+| Official bundletool 1.18.3 `dump manifest` / `validate` on fresh AAB | Both exit 0; package/version/SDK values match APK, only MainActivity declared. Captured manifest and validation log under build/bug001_production_verification/. |
+| `zipalign -c -P 16 4 .../app-release.apk` | Exit 0, check-only on fresh APK. Full ELF/native runtime and APK-set evidence from earlier sections has not been rerun for this candidate. |
+
+Public signer certificate SHA-256 for both fresh artifacts: `68F696A7F48ED756C42543A0D3AE22D66F4EC758FF863AC92F2FD367F0679575`. This also matches the previously inspected installed release, supporting same-package signer compatibility; an actual device update was not performed here.
+
+New artifacts (local, ignored, not published):
+
+- `build/app/outputs/flutter-apk/app-release.apk`: SHA-256 `7AE92911107F62EDEE000E5CF0E1D2F4647D93C2664E876138897E7CB1575918`.
+- `build/app/outputs/bundle/release/app-release.aab`: SHA-256 `38621BE1881816CA35240BA9455DD7E76A1D56B3C4F446C6D90496B4EDF9F4D2`.
+
+These replace previous local release artifacts at those paths. Version labels remain 0.7.0+7, so identify this candidate by the **new APK hash**, not version text alone. Earlier device reports, hashes, APK sets and static native checks must not be attributed to this rebuilt candidate.
+
+jarsigner still reports the self-signed/untrusted certificate chain, missing timestamp (certificate expiry 2054-03-29) and JarFile/JarInputStream ordering warnings. These were not suppressed or repaired by manually altering the signed archive. Fresh cryptographic verification, signer identity, byte-equivalence and bundletool validation succeeded; no Play acceptance or full release readiness is claimed.
+
+### Original production-build retest plan — before the owner confirmation below
+
+1. Verify the new APK hash above and public signer fingerprint, then install this signed release APK **in place** on Samsung SM-A225F using the same package/signing identity (`adb install -r <verified-apk>` or the owner's usual compatible update flow). Do not uninstall or clear data. Record the exact hash, device/One UI version and system touch-feedback setting. The isolated diagnostic app or a previous 0.7.0+7 APK is not this candidate.
+2. With app haptics ON and system touch feedback enabled, compare changed category/round choices (20 ms), Quick Play/normal start (30 ms), pass-phone with handoff ON (50 ms), and reveal/next-question with handoff OFF (30 ms). Report each as perceptible/not perceptible and comfortable/excessive. The diagnostic 50 ms PASS does not establish production or 20/30 ms perceptibility; these remain tuning candidates.
+3. Confirm one pulse per deliberate action. Already-selected category/round choices, idle frames/builds, theme/settings changes, exit/cancel dialogs and finite-session completion should not add pulses. Rapid requests inside 120 ms may intentionally be dropped; gameplay progression must still work normally and no delayed pulse should appear later.
+4. Turn app haptics OFF and repeat all actions. Confirm no optional feedback, including tooltip long press. Leave/reopen with OFF and verify persistence; turn ON, reopen and verify it remains enabled. Check that custom questions, other settings and question rotation are preserved without clearing data.
+5. Exercise handoff ON/OFF, finite/unlimited play, navigation and background/foreground. Confirm no crash when system touch feedback is disabled, and no unexpected pulse on return. Restore the owner's preferred system settings afterward. This does not substitute for the separate unverified process-death, accessibility, 16 KB runtime or upgrade QA matrix.
+6. Report production results against the exact new APK hash. The subsequent owner confirmation below establishes general production perceptibility and OFF suppression only; it does not close every detailed case in this plan. If shorter effects are not felt, collect action-specific observations before any further duration tuning; do not automatically increase intensity or add repeats.
+
+Changes remain local on chore/v07-production-hardening. No private credentials were committed, PR #1 was not merged and nothing was uploaded or published.
+
+## Owner-confirmed production BUG-001 result and commit checks — 2026-11-11
+
+Evidence source: the owner's explicit confirmation in chat, not an agent-observed motor test. Device: Samsung SM-A225F; artifact described by the owner as the production native-feedback release APK.
+
+| Production manual check | Owner-reported result |
+| --- | --- |
+| Native vibration perceptibility | **PASS** |
+| Haptics OFF suppression | **PASS** |
+
+This confirms the production path at the reported scope and supersedes the earlier physical-confirmation-pending statements. It does not imply that every step in the original production retest plan was executed. No additional device commands or manual motor tests were performed by the agent for this update. The owner did not supply a fresh installed-APK hash, measured duration/amplitude, detailed action-by-action results or instrumented timing evidence with this confirmation; the preceding local artifact hashes remain separate tool evidence.
+
+**Explicitly unverified on hardware:** exact 120 ms cooldown timing, every 20/30/50 ms action-specific tuning value, minimum perceptible duration, exhaustive duplicate/burst timing, process-death persistence/timing and all other unexecuted detailed cases. The mocked cooldown/ON/OFF tests are automated request-logic evidence, not physical timing or process-death evidence. Same-package upgrade, TalkBack, maximum font scaling, Android 15/16 edge-to-edge and 16 KB runtime remain unverified unless separately evidenced. General persistence/rotation confirmations from earlier reports are not upgraded to process-death PASS.
+
+Executed again before committing the native fix and its tests/documentation:
+
+- `flutter analyze`: exit 0, no issues (1.6 seconds).
+- `flutter test`: exit 0, all **35 tests passed**.
+- `git diff --check`: exit 0.
+
+Reviewed the application/native changes, new HapticService/tests and documentation for secrets. Release notes include only public artifact hashes/certificate fingerprints; no credential values are needed. The release setup document now correctly identifies VIBRATE as the added optional native-feedback permission. Commit preparation excludes local key.properties, keystores, APK/AAB/build logs and all ignored build artifacts. Signing keys/configuration, permanent application ID, preference keys, question content and gameplay rules were not changed in this update. No new release build or installation was performed for this documentation/commit step.
+
+The intended commit/push contains the accumulated production native fix, its centralized gating/navigation changes, tests and non-secret investigation/test documentation. GitHub CI must be read for the pushed commit; local PASS results above do not establish hosted CI success. PR #1 remains unmerged and no app/store publication is authorized or performed.

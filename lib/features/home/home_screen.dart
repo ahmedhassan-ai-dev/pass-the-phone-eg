@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/models/game_category.dart';
 import '../../core/services/app_store.dart';
 import '../game/game_screen.dart';
@@ -132,16 +131,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        if (widget.store.hapticsEnabled) {
-                          HapticFeedback.selectionClick();
-                        }
+                        widget.store.haptics.gameStart();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => GameScreen(
                               session: widget.store.startGame('friends'),
                               category: gameCategories.first,
-                              hapticsEnabled: widget.store.hapticsEnabled,
+                              haptics: widget.store.haptics,
                             ),
                           ),
                         );
@@ -184,8 +181,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(24),
                               onTap: () {
-                                if (widget.store.hapticsEnabled) {
-                                  HapticFeedback.selectionClick();
+                                if (selected != c.id) {
+                                  widget.store.haptics.selection();
                                 }
                                 setState(() => selected = c.id);
                               },
@@ -258,8 +255,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: Text(option == null ? '∞ مفتوح' : '$option'),
                         selected: maxRounds == option,
                         onSelected: (_) {
-                          if (widget.store.hapticsEnabled) {
-                            HapticFeedback.selectionClick();
+                          if (maxRounds != option) {
+                            widget.store.haptics.selection();
                           }
                           setState(() => maxRounds = option);
                         },
@@ -273,9 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: count == 0
                         ? null
                         : () {
-                            if (widget.store.hapticsEnabled) {
-                              HapticFeedback.mediumImpact();
-                            }
+                            widget.store.haptics.gameStart();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -285,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     limit: maxRounds,
                                   ),
                                   category: category,
-                                  hapticsEnabled: widget.store.hapticsEnabled,
+                                  haptics: widget.store.haptics,
                                 ),
                               ),
                             );

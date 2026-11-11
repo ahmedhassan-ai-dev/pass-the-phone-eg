@@ -21,7 +21,7 @@ Before upload:
 
 compileSdk and targetSdk have an explicit floor of 36. Flutter 3.47.7 defaults to 36 and minSdk 24. Existing AGP 9.1.0, Gradle 9.3.1, Kotlin 2.4.0 and Flutter compatibility flags are retained; repeat builds after any toolchain change.
 
-Source review: no permissions in main manifest; INTERNET is only in debug/profile. No ad, analytics, account or networking SDK is declared. Inspect merged release permissions after dependency changes.
+Source review: the main manifest requests VIBRATE for optional capped native haptic feedback, gated by the persisted haptics setting. INTERNET is only in debug/profile. No ad, analytics, account or networking SDK is declared. Inspect merged release permissions after dependency changes.
 
 SafeArea is used throughout; Android 15/16 edge-to-edge insets, gesture/three-button navigation contrast and large text need device verification. Existing raster launcher icons remain; no adaptive icon is supplied. Owner icon approval/replacement remains open.
 

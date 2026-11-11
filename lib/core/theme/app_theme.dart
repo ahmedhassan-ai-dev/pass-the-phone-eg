@@ -19,6 +19,9 @@ class AppTheme {
     final text = ThemeData(brightness: brightness).textTheme;
     return ThemeData(
       useMaterial3: true,
+      // Keep optional haptics in HapticService; tooltips otherwise vibrate on
+      // long press independently of the persisted haptics setting.
+      tooltipTheme: const TooltipThemeData(enableFeedback: false),
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.surface,
