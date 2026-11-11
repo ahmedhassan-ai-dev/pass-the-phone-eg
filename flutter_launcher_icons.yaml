@@ -8,3 +8,4 @@ flutter_launcher_icons:
   # --- Android Adaptive Icons (API 26+) ---
   adaptive_icon_foreground: "assets/branding/adaptive_foreground_1024.png"
   adaptive_icon_background: "assets/branding/adaptive_background_1024.png"
+  adaptive_icon_foreground_inset: 7

@@ -473,3 +473,38 @@ Executed again before committing the native fix and its tests/documentation:
 Reviewed the application/native changes, new HapticService/tests and documentation for secrets. Release notes include only public artifact hashes/certificate fingerprints; no credential values are needed. The release setup document now correctly identifies VIBRATE as the added optional native-feedback permission. Commit preparation excludes local key.properties, keystores, APK/AAB/build logs and all ignored build artifacts. Signing keys/configuration, permanent application ID, preference keys, question content and gameplay rules were not changed in this update. No new release build or installation was performed for this documentation/commit step.
 
 The intended commit/push contains the accumulated production native fix, its centralized gating/navigation changes, tests and non-secret investigation/test documentation. GitHub CI must be read for the pushed commit; local PASS results above do not establish hosted CI success. PR #1 remains unmerged and no app/store publication is authorized or performed.
+
+## Task 04 Branding & Adaptive Icon Sizing — 2026-11-11 (Africa/Cairo)
+
+Branch: `task/04-branding`, based on `chore/v07-production-hardening` (commit `aa30d2d`).
+
+### Changes
+1. **Application Identity & Display Name**:
+   - `android:label` updated to `"Pass The Phone"` in `android/app/src/main/AndroidManifest.xml`.
+   - Permanent package ID `com.ahmedhassan.passthephone` preserved.
+2. **Branding Assets & Adaptive Launcher Icons**:
+   - Legacy launcher icons generated across all densities (`mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`) from `assets/branding/launcher_icon_1024.png`.
+   - Android Adaptive icons (`mipmap-anydpi-v26/ic_launcher.xml`) generated using `adaptive_foreground_1024.png` and `adaptive_background_1024.png`.
+   - **Adaptive Icon Visual Sizing**: Configured `adaptive_icon_foreground_inset: 7` in `flutter_launcher_icons.yaml` and `android:inset="7%"` in `ic_launcher.xml` (reduced from the default 16%). This scales up the graphic by ~26% to fill Samsung's squircle mask naturally without excess border padding, while ensuring that hands, phone, motion lines, and sleeves remain fully inside the circular mask safe zone without clipping.
+   - Note on source asset: As documented in handoff, `adaptive_foreground_1024.png` contains an embedded flattened purple squircle rather than separated layers.
+3. **Android 12+ SplashScreen API**:
+   - Added `values/colors.xml` (`splash_background` = `#FF2C087B`, sampled from approved background).
+   - Added `values-v31/styles.xml` and `values-night-v31/styles.xml` using `android:windowSplashScreenBackground` and `android:windowSplashScreenAnimatedIcon` (`@mipmap/ic_launcher`).
+   - Updated `drawable/launch_background.xml` and `drawable-v21/launch_background.xml` to use `@color/splash_background`.
+   - No synthetic or artificial splash delays introduced.
+4. **Preservation of Game Integrity**:
+   - Zero changes to gameplay, question bank (220 questions preserved), stored preference keys, haptics service, signing configuration, or application ID.
+
+### Verification Results
+| Verification Step | Result |
+| --- | --- |
+| `flutter analyze` | Exit 0, 0 issues |
+| `flutter test` | Exit 0, all 35 tests passed |
+| `flutter build apk --release` | Exit 0, 49.3 MB |
+| `flutter build appbundle --release` | Exit 0, 48.4 MB |
+| `apksigner verify --print-certs` | Exit 0, signed by Ahmed Hassan Mohamed Masoud (`68f696a7f48ed756c42543a0d3ae22d66f4ec758ff863ac92f2fd367f0679575`) |
+| `adb install -r` on Samsung SM-A225F | Exit 0, Success (installed in place, user data preserved) |
+
+Rebuilt Artifact Hashes:
+- APK (`build/app/outputs/flutter-apk/app-release.apk`): SHA-256 `611C23A6D08549471133E8154977BD23ECBC8C5B6B5C95F2D950DD32083AD80E`
+- AAB (`build/app/outputs/bundle/release/app-release.aab`): SHA-256 `0317D8A07181230F3E8390F8628DEFABDD88C4EB8819C50DB9B0931A37646A72`
