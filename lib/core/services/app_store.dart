@@ -10,6 +10,7 @@ class AppStore extends ChangeNotifier {
   static const _themeKey = 'ptp_theme_v2';
   static const _handoffKey = 'ptp_handoff_enabled_v5';
   static const _hapticsKey = 'ptp_haptics_enabled_v5';
+  static const _surpriseKey = 'ptp_surprise_enabled_v6';
   static const _customKey = 'ptp_custom_questions_v2';
   static const _deckKey = 'ptp_remaining_decks_v4';
   static const _knownKey = 'ptp_known_decks_v4';
@@ -22,6 +23,7 @@ class AppStore extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.system;
   bool handoffEnabled = true;
   bool hapticsEnabled = true;
+  bool surpriseEnabled = false;
 
   List<PartyQuestion> get customQuestions => List.unmodifiable(_custom);
   int countFor(String category) => available(category).length;
@@ -30,7 +32,9 @@ class AppStore extends ChangeNotifier {
     final built = _builtIn.where(
       (q) =>
           q.category == category ||
-          (category == 'friends' && q.category == 'savage'),
+          (category == 'friends' &&
+              (q.category == 'savage' ||
+                  (surpriseEnabled && q.category == 'surprise'))),
     );
     final custom = _custom.where(
       (q) =>
@@ -107,6 +111,7 @@ class AppStore extends ChangeNotifier {
     };
     handoffEnabled = await _prefs.getBool(_handoffKey) ?? true;
     hapticsEnabled = await _prefs.getBool(_hapticsKey) ?? true;
+    surpriseEnabled = await _prefs.getBool(_surpriseKey) ?? false;
     notifyListeners();
   }
 
@@ -120,6 +125,12 @@ class AppStore extends ChangeNotifier {
     hapticsEnabled = enabled;
     notifyListeners();
     await _prefs.setBool(_hapticsKey, enabled);
+  }
+
+  Future<void> setSurpriseEnabled(bool enabled) async {
+    surpriseEnabled = enabled;
+    notifyListeners();
+    await _prefs.setBool(_surpriseKey, enabled);
   }
 
   GameSession startGame(String category, {int? limit}) {

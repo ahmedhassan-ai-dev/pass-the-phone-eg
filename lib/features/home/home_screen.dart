@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const Spacer(),
                           Text(
-                            'PASS IT ON',
+                            'YOUR TURN',
                             style: t.textTheme.labelSmall?.copyWith(
                               color: scheme.onPrimaryContainer.withValues(
                                 alpha: 0.74,
@@ -111,14 +111,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 25),
                       Text(
-                        'الدور على مين؟',
+                        'ادّي الموبايل',
                         style: t.textTheme.headlineLarge?.copyWith(
                           color: scheme.onPrimaryContainer,
                         ),
                       ),
                       const SizedBox(height: 7),
                       Text(
-                        'سؤال واحد ممكن يقلب القعدة كلها.',
+                        'اختاروا المود، والباقي على القعدة.',
                         style: t.textTheme.bodyLarge?.copyWith(
                           color: scheme.onPrimaryContainer,
                         ),
@@ -146,12 +146,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                       icon: const Icon(Icons.flash_on_rounded),
-                      label: const Text('Quick Play  ·  العب على طول'),
+                      label: const Text('ابدأ بسرعة  ·  The Crew'),
                     ),
                   ),
                 ),
                 const SizedBox(height: 28),
-                Text('اختاروا القعدة', style: t.textTheme.titleLarge),
+                Text('اختار المود', style: t.textTheme.titleLarge),
                 const SizedBox(height: 13),
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     Text('عدد الجولات', style: t.textTheme.titleLarge),

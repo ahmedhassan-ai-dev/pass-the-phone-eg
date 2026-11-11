@@ -78,6 +78,20 @@ void main() {
     expect(game.phase, GamePhase.finished);
   });
 
+  test('no repeats across a cycle even with handoff disabled', () {
+    final game = GameSession(
+      questions,
+      random: Random(33),
+      handoffEnabled: false,
+    );
+    final seen = <String>{};
+    for (var i = 0; i < questions.length; i++) {
+      seen.add(game.current.id);
+      game.handOff();
+    }
+    expect(seen.length, questions.length);
+  });
+
   test('empty questions rejected', () {
     expect(() => GameSession([]), throwsArgumentError);
   });

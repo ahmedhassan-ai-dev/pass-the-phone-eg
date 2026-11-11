@@ -48,6 +48,23 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 28),
+                Text(
+                  'إضافات اللعب',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: SwitchListTile.adaptive(
+                    title: const Text('كروت مفاجأة'),
+                    subtitle: const Text(
+                      'تحديات مختلفة تظهر وسط أسئلة The Crew. بتبدأ من اللعبة الجديدة.',
+                    ),
+                    value: store.surpriseEnabled,
+                    onChanged: store.setSurpriseEnabled,
+                    secondary: const Icon(Icons.auto_awesome_rounded),
+                  ),
+                ),
+                const SizedBox(height: 28),
                 Text('المظهر', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 12),
                 RadioGroup<ThemeMode>(
@@ -75,7 +92,7 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 30),
                 Center(
                   child: Text(
-                    'Pass The Phone · v0.5',
+                    'Pass The Phone · v0.6',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

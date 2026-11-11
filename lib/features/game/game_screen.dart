@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/models/game_category.dart';
 import '../../core/services/game_session.dart';
 import '../../core/widgets/press_scale.dart';
+import '../../core/widgets/question_card.dart';
 
 class GameScreen extends StatefulWidget {
   final GameSession session;
@@ -14,68 +15,77 @@ class GameScreen extends StatefulWidget {
     required this.category,
     this.hapticsEnabled = true,
   });
+
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
   void advance() {
-    final session = widget.session;
-    if (session.phase == GamePhase.finished) {
+    final game = widget.session;
+    if (game.phase == GamePhase.finished) {
       Navigator.pop(context);
       return;
     }
-    if (session.phase == GamePhase.question) {
-      if (widget.hapticsEnabled) HapticFeedback.mediumImpact();
-      setState(session.handOff);
-    } else {
-      if (widget.hapticsEnabled) HapticFeedback.lightImpact();
-      setState(session.revealNext);
-    }
+    if (widget.hapticsEnabled) HapticFeedback.selectionClick();
+    setState(() {
+      if (game.phase == GamePhase.question) {
+        game.handOff();
+      } else {
+        game.revealNext();
+      }
+    });
   }
 
-  Future<bool> confirmExit() async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('نخرج من اللعبة؟'),
-          content: const Text(
-            'الجولة الحالية هتنتهي، بس الأسئلة اللي اتسألت محفوظة.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('نكمل'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('خروج'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
-
   Future<void> exitGame() async {
-    if (await confirmExit() && mounted) Navigator.pop(context);
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('نخرج من اللعبة؟'),
+        content: const Text(
+          'الأسئلة اللي ظهرت هتفضل متسجلة عشان ما تتكررش بسرعة.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('نكمل'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('خروج'),
+          ),
+        ],
+      ),
+    );
+    if (approved == true && mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final scheme = t.colorScheme;
-    final session = widget.session;
-    final finished = session.phase == GamePhase.finished;
-    final handoff = session.phase == GamePhase.handoff;
+    final game = widget.session;
+    final handoff = game.phase == GamePhase.handoff;
+    final finished = game.phase == GamePhase.finished;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    final animationDuration = reduceMotion
+    final duration = reduceMotion
         ? Duration.zero
-        : const Duration(milliseconds: 390);
-    final headline = finished
-        ? 'كفاية فضايح لحد كده 🎉'
+        : const Duration(milliseconds: 440);
+    final contentKey = ValueKey('${game.round}-${game.phase.name}');
+    final question = finished
+        ? 'عايزين جولة كمان؟'
         : handoff
-        ? 'الموبايل معاك دلوقتي؟'
-        : session.current.text;
+        ? 'الموبايل وصل؟'
+        : game.current.text;
+    final isSurprise =
+        !handoff && !finished && game.current.category == 'surprise';
+    final header = finished
+        ? 'خلصت الجولة'
+        : handoff
+        ? 'الدور عليك'
+        : isSurprise
+        ? 'كارت مفاجأة ✦'
+        : 'مين فيكم؟';
 
     return PopScope(
       canPop: false,
@@ -88,14 +98,14 @@ class _GameScreenState extends State<GameScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
                 child: Column(
                   children: [
                     Row(
                       children: [
                         IconButton(
                           onPressed: exitGame,
-                          tooltip: 'خروج',
+                          tooltip: 'إنهاء اللعبة',
                           icon: const Icon(Icons.close_rounded),
                         ),
                         Expanded(
@@ -105,132 +115,120 @@ class _GameScreenState extends State<GameScreen> {
                             style: t.textTheme.titleMedium,
                           ),
                         ),
-                        SizedBox(
-                          width: 50,
-                          child: Text(
-                            finished ? '✓' : '${session.round}',
-                            textAlign: TextAlign.center,
-                            style: t.textTheme.titleMedium?.copyWith(
-                              color: scheme.primary,
+                        Semantics(
+                          label: 'الجولة ${game.round}',
+                          child: SizedBox(
+                            width: 49,
+                            child: Text(
+                              finished ? '✓' : '${game.round}',
+                              textAlign: TextAlign.center,
+                              style: t.textTheme.titleMedium?.copyWith(
+                                color: scheme.primary,
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 15),
-                    if (!session.isUnlimited) ...[
+                    if (!game.isUnlimited) ...[
+                      const SizedBox(height: 9),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(12),
                         child: LinearProgressIndicator(
-                          value: finished ? 1 : session.round / session.limit!,
+                          value: finished ? 1 : game.round / game.limit!,
                           minHeight: 5,
                           backgroundColor: scheme.surfaceContainerHighest,
                         ),
                       ),
-                      const SizedBox(height: 13),
                     ],
+                    const SizedBox(height: 12),
                     Expanded(
-                      child: Center(
-                        child: AnimatedSwitcher(
-                          duration: animationDuration,
-                          switchInCurve: Curves.easeOutBack,
-                          switchOutCurve: Curves.easeInCubic,
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(
-                                opacity: animation,
-                                child: ScaleTransition(
-                                  scale: Tween<double>(
-                                    begin: 0.90,
-                                    end: 1,
-                                  ).animate(animation),
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, 0.14),
-                                      end: Offset.zero,
-                                    ).animate(animation),
-                                    child: child,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => Center(
+                          child: SingleChildScrollView(
+                            child: AnimatedSwitcher(
+                              duration: duration,
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                    opacity: animation,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, .09),
+                                        end: Offset.zero,
+                                      ).animate(animation),
+                                      child: ScaleTransition(
+                                        scale: Tween<double>(begin: .94, end: 1)
+                                            .animate(
+                                              CurvedAnimation(
+                                                parent: animation,
+                                                curve: Curves.easeOutCubic,
+                                              ),
+                                            ),
+                                        child: child,
+                                      ),
+                                    ),
                                   ),
+                              child: QuestionCard(
+                                key: contentKey,
+                                tint: widget.category.color,
+                                isHandoff: handoff,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      finished
+                                          ? Icons.celebration_rounded
+                                          : handoff
+                                          ? Icons.phone_android_rounded
+                                          : isSurprise
+                                          ? Icons.auto_awesome_rounded
+                                          : widget.category.icon,
+                                      color: widget.category.color,
+                                      size: 39,
+                                    ),
+                                    const SizedBox(height: 19),
+                                    Text(
+                                      header,
+                                      style: t.textTheme.titleMedium?.copyWith(
+                                        color: scheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      question,
+                                      textAlign: TextAlign.center,
+                                      textScaler: MediaQuery.textScalerOf(
+                                        context,
+                                      ),
+                                      style: t.textTheme.headlineMedium
+                                          ?.copyWith(
+                                            fontSize: 26,
+                                            height: 1.56,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                    Text(
+                                      finished
+                                          ? 'ممكن تبدأوا قعدة جديدة من الرئيسية.'
+                                          : handoff
+                                          ? 'اكشف السؤال لما تبقى جاهز.'
+                                          : 'اختار الشخص وسلّمه الموبايل.',
+                                      textAlign: TextAlign.center,
+                                      style: t.textTheme.bodyMedium?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                          child: Container(
-                            key: ValueKey(
-                              '${session.round}_${session.phase.name}',
-                            ),
-                            width: double.infinity,
-                            constraints: const BoxConstraints(minHeight: 330),
-                            padding: const EdgeInsets.fromLTRB(28, 35, 28, 35),
-                            decoration: BoxDecoration(
-                              color: handoff
-                                  ? scheme.secondaryContainer
-                                  : t.cardTheme.color,
-                              borderRadius: BorderRadius.circular(34),
-                              border: Border.all(
-                                color: widget.category.color.withValues(
-                                  alpha: 0.3,
-                                ),
-                                width: 1.2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: scheme.shadow.withValues(alpha: 0.06),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 14),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  finished
-                                      ? Icons.celebration_rounded
-                                      : handoff
-                                      ? Icons.phone_android_rounded
-                                      : widget.category.icon,
-                                  color: widget.category.color,
-                                  size: 43,
-                                ),
-                                const SizedBox(height: 24),
-                                Text(
-                                  finished
-                                      ? 'خلصت الجولة'
-                                      : handoff
-                                      ? 'الدور عليك'
-                                      : 'مين فيكم؟',
-                                  style: t.textTheme.titleMedium?.copyWith(
-                                    color: scheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  headline,
-                                  textAlign: TextAlign.center,
-                                  style: t.textTheme.headlineMedium?.copyWith(
-                                    fontSize: 27,
-                                    height: 1.5,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                Text(
-                                  finished
-                                      ? 'نفس القعدة، أسئلة جديدة المرة الجاية.'
-                                      : handoff
-                                      ? 'اضغط لما تكون جاهز للسؤال.'
-                                      : 'اختار حد وادّيله الموبايل.',
-                                  textAlign: TextAlign.center,
-                                  style: t.textTheme.bodyMedium?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     PressScale(
                       child: SizedBox(
                         width: double.infinity,
@@ -248,7 +246,7 @@ class _GameScreenState extends State<GameScreen> {
                                 ? 'الرئيسية'
                                 : handoff
                                 ? 'اكشف السؤال'
-                                : session.handoffEnabled
+                                : game.handoffEnabled
                                 ? 'سلّمت الموبايل'
                                 : 'السؤال التالي',
                           ),
