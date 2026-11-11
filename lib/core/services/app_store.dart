@@ -14,7 +14,10 @@ class AppStore extends ChangeNotifier {
   static const _customKey = 'ptp_custom_questions_v2';
   static const _deckKey = 'ptp_remaining_decks_v4';
   static const _knownKey = 'ptp_known_decks_v4';
-  final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
+  final SharedPreferencesAsync _prefs;
+
+  AppStore({SharedPreferencesAsync? preferences})
+    : _prefs = preferences ?? SharedPreferencesAsync();
   final Random _random = Random.secure();
   List<PartyQuestion> _builtIn = [];
   List<PartyQuestion> _custom = [];
@@ -198,7 +201,9 @@ class AppStore extends ChangeNotifier {
     if (!['friends', 'love', 'family'].contains(category)) {
       throw ArgumentError('اختار فئة صحيحة');
     }
-    if (_custom.any((q) => q.category == category && q.text == cleaned)) {
+    if (available(
+      category,
+    ).any((q) => q.text.toLowerCase() == cleaned.toLowerCase())) {
       throw ArgumentError('السؤال ده موجود بالفعل');
     }
     _custom.add(

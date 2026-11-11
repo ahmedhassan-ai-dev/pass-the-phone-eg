@@ -132,8 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        if (widget.store.hapticsEnabled)
+                        if (widget.store.hapticsEnabled) {
                           HapticFeedback.selectionClick();
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -183,8 +184,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(24),
                               onTap: () {
-                                if (widget.store.hapticsEnabled)
+                                if (widget.store.hapticsEnabled) {
                                   HapticFeedback.selectionClick();
+                                }
                                 setState(() => selected = c.id);
                               },
                               child: Padding(
@@ -256,8 +258,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: Text(option == null ? '∞ مفتوح' : '$option'),
                         selected: maxRounds == option,
                         onSelected: (_) {
-                          if (widget.store.hapticsEnabled)
+                          if (widget.store.hapticsEnabled) {
                             HapticFeedback.selectionClick();
+                          }
                           setState(() => maxRounds = option);
                         },
                       ),
@@ -270,8 +273,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: count == 0
                         ? null
                         : () {
-                            if (widget.store.hapticsEnabled)
+                            if (widget.store.hapticsEnabled) {
                               HapticFeedback.mediumImpact();
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(

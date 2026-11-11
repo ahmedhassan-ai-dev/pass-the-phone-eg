@@ -32,10 +32,11 @@ class _CustomQuestionsScreenState extends State<CustomQuestionsScreen> {
       ).showSnackBar(const SnackBar(content: Text('السؤال اتضاف للقعدة ✨')));
       setState(() {});
     } on ArgumentError catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('${e.message}')));
+      }
     } finally {
       if (mounted) setState(() => saving = false);
     }

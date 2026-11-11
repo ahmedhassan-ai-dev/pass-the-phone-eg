@@ -92,6 +92,53 @@ void main() {
     expect(seen.length, questions.length);
   });
 
+  test('revealNext outside handoff is ignored', () {
+    final game = GameSession(questions, random: Random(5));
+    game.revealNext();
+    expect(game.round, 1);
+    expect(game.phase, GamePhase.question);
+  });
+
+  test('invalid limit is rejected', () {
+    expect(() => GameSession(questions, limit: 0), throwsArgumentError);
+    expect(() => GameSession(questions, limit: -3), throwsArgumentError);
+  });
+
+  test('wrong initial order is rejected', () {
+    expect(
+      () => GameSession(questions, initialOrder: [questions.first]),
+      throwsArgumentError,
+    );
+    expect(
+      () => GameSession(
+        questions,
+        initialOrder: [
+          questions.first,
+          questions.first,
+          questions[2],
+          questions[3],
+        ],
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('last question does not become first after reshuffle', () {
+    final game = GameSession(
+      questions,
+      random: Random(9),
+      initialOrder: questions,
+    );
+    final ids = <String>[];
+    for (var i = 0; i < questions.length; i++) {
+      ids.add(game.current.id);
+      game.handOff();
+      game.revealNext();
+    }
+    expect(ids.toSet().length, questions.length);
+    expect(game.current.id, isNot(ids.last));
+  });
+
   test('empty questions rejected', () {
     expect(() => GameSession([]), throwsArgumentError);
   });

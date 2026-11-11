@@ -92,7 +92,7 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 30),
                 Center(
                   child: Text(
-                    'Pass The Phone · v0.6',
+                    'Pass The Phone · v0.7',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
