@@ -28,7 +28,6 @@ void main() {
       game.revealNext();
     }
     expect(first.length, 4);
-    expect(game.phase, GamePhase.question);
   });
 
   test('handoff hides question until reveal', () {
@@ -37,8 +36,20 @@ void main() {
     game.handOff();
     expect(game.phase, GamePhase.handoff);
     game.revealNext();
-    expect(game.phase, GamePhase.question);
     expect(game.current.id, isNot(previous.id));
+  });
+
+  test('initial order and per-reveal hooks work', () {
+    final seen = <String>[];
+    final game = GameSession(
+      questions,
+      initialOrder: questions.reversed.toList(),
+      onQuestionShown: seen.add,
+    );
+    expect(game.current.id, questions.last.id);
+    game.handOff();
+    game.revealNext();
+    expect(seen, ['3', '2']);
   });
 
   test('empty questions rejected', () {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/game_category.dart';
 import '../../core/services/app_store.dart';
-import '../../core/services/game_session.dart';
 import '../game/game_screen.dart';
 import '../questions/custom_questions_screen.dart';
 import '../settings/settings_screen.dart';
@@ -15,10 +15,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String selected = 'friends';
-  int? maxRounds; // null means unlimited
+  int? maxRounds;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final t = Theme.of(context);
+    final scheme = t.colorScheme;
     final category = gameCategories.firstWhere((c) => c.id == selected);
     final count = widget.store.countFor(selected);
     return Scaffold(
@@ -27,168 +29,243 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Expanded(
+                      child: Text(
+                        'PASS THE PHONE',
+                        style: t.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.0,
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'أسئلتي',
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CustomQuestionsScreen(store: widget.store),
+                          ),
+                        );
+                        if (mounted) setState(() {});
+                      },
+                      icon: const Icon(Icons.edit_note_rounded),
+                    ),
                     IconButton(
                       tooltip: 'الإعدادات',
-                      icon: const Icon(Icons.settings_outlined),
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => SettingsScreen(store: widget.store),
                         ),
                       ),
-                    ),
-                    Text(
-                      'PASS THE PHONE',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        letterSpacing: 2,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'أسئلتي',
-                      icon: const Icon(Icons.edit_note_rounded),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              CustomQuestionsScreen(store: widget.store),
-                        ),
-                      ),
+                      icon: const Icon(Icons.settings_outlined),
                     ),
                   ],
                 ),
-                const SizedBox(height: 22),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.primaryContainer,
-                    ),
-                    child: Icon(
-                      Icons.phone_android_rounded,
-                      size: 58,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
+                const SizedBox(height: 19),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 25,
+                    vertical: 31,
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'ادّي الموبايل',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineMedium?.copyWith(fontSize: 34),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'اقرأ السؤال، اختار صاحبك، وخلي الموبايل يلف!',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer.withValues(alpha: 0.70),
+                    borderRadius: BorderRadius.circular(32),
                   ),
-                ),
-                const SizedBox(height: 26),
-                Text('اختاروا المود', style: theme.textTheme.titleLarge),
-                const SizedBox(height: 12),
-                ...gameCategories.map(
-                  (c) => Padding(
-                    padding: const EdgeInsets.only(bottom: 9),
-                    child: Card(
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => setState(() => selected = c.id),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: c.color.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(c.icon, color: c.color),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(11),
+                            decoration: BoxDecoration(
+                              color: scheme.surface.withValues(alpha: 0.66),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.phone_android_rounded,
+                              size: 26,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'THE PARTY STARTS HERE',
+                            style: t.textTheme.labelSmall?.copyWith(
+                              color: scheme.onPrimaryContainer.withValues(
+                                alpha: 0.74,
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 25),
+                      Text(
+                        'مين في الشلة؟',
+                        style: t.textTheme.headlineLarge?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        'اقرأ السؤال. اختار الشخص. ادّيله الموبايل.',
+                        style: t.textTheme.bodyLarge?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Text('اختاروا القعدة', style: t.textTheme.titleLarge),
+                const SizedBox(height: 13),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final tileWidth = (constraints.maxWidth - 12) / 2;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: gameCategories.map((c) {
+                        final active = selected == c.id;
+                        return SizedBox(
+                          width: tileWidth,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? c.color.withValues(alpha: 0.17)
+                                  : t.cardTheme.color,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                width: active ? 2 : 1,
+                                color: active
+                                    ? c.color
+                                    : scheme.outlineVariant.withValues(
+                                        alpha: 0.35,
+                                      ),
+                              ),
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() => selected = c.id);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(17),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      children: [
+                                        Icon(c.icon, color: c.color, size: 29),
+                                        const Spacer(),
+                                        Icon(
+                                          active
+                                              ? Icons.check_circle_rounded
+                                              : Icons.circle_outlined,
+                                          size: 20,
+                                          color: active
+                                              ? c.color
+                                              : scheme.outline,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 22),
                                     Text(
                                       c.title,
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                          ),
+                                      style: t.textTheme.titleLarge?.copyWith(
+                                        fontSize: 19,
+                                      ),
                                     ),
+                                    const SizedBox(height: 5),
                                     Text(
-                                      '${c.subtitle} • ${widget.store.countFor(c.id)} سؤال',
-                                      style: theme.textTheme.bodySmall,
+                                      c.subtitle,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: t.textTheme.bodySmall?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 9),
+                                    Text(
+                                      '${widget.store.countFor(c.id)} سؤال',
+                                      style: t.textTheme.labelSmall?.copyWith(
+                                        color: scheme.primary,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Icon(
-                                selected == c.id
-                                    ? Icons.check_circle_rounded
-                                    : Icons.circle_outlined,
-                                color: selected == c.id
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.outline,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Text('عدد الجولات', style: t.textTheme.titleLarge),
+                    const Spacer(),
+                    Text(
+                      maxRounds == null ? 'مفتوح ∞' : '$maxRounds جولة',
+                      style: t.textTheme.labelLarge?.copyWith(
+                        color: scheme.primary,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text('عدد الجولات', style: theme.textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    for (final option in <int?>[null, 10, 20, 30, 50])
-                      ChoiceChip(
-                        label: Text(option == null ? 'مفتوح ∞' : '$option'),
-                        selected: maxRounds == option,
-                        onSelected: (_) => setState(() => maxRounds = option),
-                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'الأسئلة بتتخلط تلقائيًا. لو خلصت، بتبدأ دورة جديدة.',
-                  style: theme.textTheme.bodySmall,
-                ),
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: count == 0
-                      ? null
-                      : () {
-                          final session = GameSession(
-                            widget.store.available(selected),
-                            limit: maxRounds,
-                          );
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GameScreen(
-                                session: session,
-                                category: category,
-                              ),
-                            ),
-                          );
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final option in <int?>[null, 10, 20, 30, 50])
+                      ChoiceChip(
+                        label: Text(option == null ? '∞ مفتوح' : '$option'),
+                        selected: maxRounds == option,
+                        onSelected: (_) {
+                          HapticFeedback.selectionClick();
+                          setState(() => maxRounds = option);
                         },
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text(
-                    count == 0 ? 'ضيف أسئلة للمود الأول' : 'يلا نبدأ!',
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 25),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: count == 0
+                        ? null
+                        : () {
+                            HapticFeedback.mediumImpact();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => GameScreen(
+                                  session: widget.store.startGame(
+                                    selected,
+                                    limit: maxRounds,
+                                  ),
+                                  category: category,
+                                ),
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: Text(count == 0 ? 'ضيف أسئلة الأول' : 'يلا نلعب'),
                   ),
                 ),
               ],

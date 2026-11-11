@@ -3,22 +3,37 @@ import '../models/party_question.dart';
 
 enum GamePhase { question, handoff, finished }
 
+/// Pure Dart gameplay. No Flutter widgets or persistence in this layer.
 class GameSession {
   final List<PartyQuestion> _source;
   final int? limit;
   final Random _random;
+  final void Function(String)? onQuestionShown;
   late List<PartyQuestion> _deck;
   int _cursor = 0;
   int round = 1;
   GamePhase phase = GamePhase.question;
   String? _lastId;
 
-  GameSession(List<PartyQuestion> questions, {this.limit, Random? random})
-    : _source = List.of(questions),
-      _random = random ?? Random() {
+  GameSession(
+    List<PartyQuestion> questions, {
+    this.limit,
+    Random? random,
+    List<PartyQuestion>? initialOrder,
+    this.onQuestionShown,
+  }) : _source = List.of(questions),
+       _random = random ?? Random.secure() {
     if (_source.isEmpty) throw ArgumentError('No questions available');
     if (limit != null && limit! <= 0) throw ArgumentError('Invalid limit');
-    _reshuffle();
+    _deck = initialOrder == null
+        ? (List.of(_source)..shuffle(_random))
+        : List.of(initialOrder);
+    if (_deck.length != _source.length ||
+        _deck.map((q) => q.id).toSet().length != _source.length ||
+        !_deck.map((q) => q.id).toSet().containsAll(_source.map((q) => q.id))) {
+      throw ArgumentError('Invalid initial order');
+    }
+    onQuestionShown?.call(current.id);
   }
 
   PartyQuestion get current => _deck[_cursor];
@@ -39,11 +54,11 @@ class GameSession {
     if (_cursor >= _deck.length) _reshuffle();
     round++;
     phase = GamePhase.question;
+    onQuestionShown?.call(current.id);
   }
 
   void _reshuffle() {
     _deck = List.of(_source)..shuffle(_random);
-    // Avoid showing the previous question immediately after a new shuffle.
     if (_deck.length > 1 && _deck.first.id == _lastId) {
       final first = _deck.removeAt(0);
       _deck.add(first);
