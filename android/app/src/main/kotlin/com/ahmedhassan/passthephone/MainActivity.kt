@@ -1,4 +1,4 @@
-package com.example.pass_the_phone
+package com.ahmedhassan.passthephone
 
 import io.flutter.embedding.android.FlutterActivity
 

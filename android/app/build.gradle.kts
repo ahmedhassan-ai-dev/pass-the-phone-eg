@@ -13,7 +13,7 @@ val uploadProperties = Properties().apply {
 val unsignedSmokeBuild = providers.gradleProperty("unsignedSmokeBuild").orNull == "true"
 
 android {
-    namespace = "com.example.pass_the_phone"
+    namespace = "com.ahmedhassan.passthephone"
     compileSdk = maxOf(36, flutter.compileSdkVersion)
     ndkVersion = flutter.ndkVersion
 
@@ -23,8 +23,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.pass_the_phone"
+        // Permanent identity approved by the owner; retain for all future upgrades.
+        applicationId = "com.ahmedhassan.passthephone"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -60,10 +60,10 @@ android {
 
 gradle.taskGraph.whenReady {
     if (allTasks.any { it.project == project && it.name in listOf("assembleRelease", "bundleRelease") }) {
+        require(android.defaultConfig.applicationId == "com.ahmedhassan.passthephone") {
+            "Release applicationId must match the approved permanent identity com.ahmedhassan.passthephone."
+        }
         if (!unsignedSmokeBuild) {
-            require(android.defaultConfig.applicationId != "com.example.pass_the_phone") {
-                "Owner-approved permanent applicationId is required. See docs/release/ANDROID_RELEASE.md."
-            }
             require(uploadPropertiesFile.exists()) {
                 "Release requires local android/key.properties and an upload key. No debug signing fallback."
             }

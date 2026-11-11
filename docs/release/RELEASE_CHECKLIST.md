@@ -1,6 +1,6 @@
 # Google Play release checklist — v0.7
 
-- [ ] Permanent applicationId chosen (cannot casually change after publishing).
+- [x] Owner-approved permanent applicationId: `com.ahmedhassan.passthephone` (retain for future upgrades; historical cross-package data access is not supported).
 - [ ] Target SDK >= 36 per Google Play requirement for new apps after Aug 31 2026.
 - [ ] Version code incremented for every Play upload.
 - [ ] App icon, adaptive icon, app label, screenshots, feature graphic reviewed.

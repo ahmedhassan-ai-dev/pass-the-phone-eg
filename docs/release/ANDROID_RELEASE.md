@@ -1,8 +1,10 @@
 # Android release setup
 
-The existing `com.example.pass_the_phone` ID is retained pending owner approval, as required by CODEX_TASKS.md. Do not invent a replacement. In-place upgrades require the same application ID and compatible signing certificate. Establish the identity/certificate of any distributed build first. A new ID creates a separate data sandbox; preference tests cannot prove cross-ID upgrades.
+The owner approved permanent application ID `com.ahmedhassan.passthephone`. The namespace and MainActivity package/path match it. The release identity guard enforces this exact ID for signed releases and unsigned smoke builds.
 
-Normal release APK/AAB builds are blocked until identity and signing are configured. There is no debug-key fallback. The owner must securely provision an upload key outside the repository, back it up and enroll in Play App Signing. No key was generated during this work.
+Historical source identities were `com.passthephone.pass_the_phone` and `com.example.pass_the_phone`, both previously configured with debug signing. Inspection found no release tags, GitHub releases, committed APK/AAB artifacts or distribution records; Play Console and private distribution were not accessible for verification. A different ID creates a separate Android data sandbox. Old data is not deleted, but is not accessible to this new package. There is no automatic cross-package migration. Do not uninstall or clear any old installation to try to migrate it. If a previously distributed build is discovered, establish its identity/certificate and a data migration plan before release. Future in-place upgrades must retain the approved permanent ID and compatible signing certificate.
+
+Normal release APK/AAB builds require private upload signing configuration. There is no debug-key fallback. The owner must securely provision an upload key outside the repository, back it up and enroll in Play App Signing. No key was generated during this work.
 
 Create ignored `android/key.properties` locally with properties `storeFile`, `storePassword`, `keyAlias`, `keyPassword`. Use an absolute keystore path with forward slashes (or a path relative to android/). Never paste credentials into commands, CI logs, comments or tracked files. Signed CI needs a separately configured secret-delivery process.
 
