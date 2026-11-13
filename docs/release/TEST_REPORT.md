@@ -508,3 +508,147 @@ Branch: `task/04-branding`, based on `chore/v07-production-hardening` (commit `a
 Rebuilt Artifact Hashes:
 - APK (`build/app/outputs/flutter-apk/app-release.apk`): SHA-256 `611C23A6D08549471133E8154977BD23ECBC8C5B6B5C95F2D950DD32083AD80E`
 - AAB (`build/app/outputs/bundle/release/app-release.aab`): SHA-256 `0317D8A07181230F3E8390F8628DEFABDD88C4EB8819C50DB9B0931A37646A72`
+
+## Task 04 Branding & Adaptive Icon Sizing — 2026-11-11 (Africa/Cairo)
+
+Branch: `task/04-branding`, based on `chore/v07-production-hardening` (commit `aa30d2d`).
+
+### Changes
+1. **Application Identity & Display Name**:
+   - `android:label` updated to `"Pass The Phone"` in `android/app/src/main/AndroidManifest.xml`.
+   - Permanent package ID `com.ahmedhassan.passthephone` preserved.
+2. **Branding Assets & Adaptive Launcher Icons**:
+   - Legacy launcher icons generated across all densities (`mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`) from `assets/branding/launcher_icon_1024.png`.
+   - Android Adaptive icons (`mipmap-anydpi-v26/ic_launcher.xml`) generated using `adaptive_foreground_1024.png` and `adaptive_background_1024.png`.
+   - **Adaptive Icon Visual Sizing**: Configured `adaptive_icon_foreground_inset: 7` in `flutter_launcher_icons.yaml` and `android:inset="7%"` in `ic_launcher.xml` (reduced from the default 16%). This scales up the graphic by ~26% to fill Samsung's squircle mask naturally without excess border padding, while ensuring that hands, phone, motion lines, and sleeves remain fully inside the circular mask safe zone without clipping.
+   - Note on source asset: As documented in handoff, `adaptive_foreground_1024.png` contains an embedded flattened purple squircle rather than separated layers.
+3. **Android 12+ SplashScreen API**:
+   - Added `values/colors.xml` (`splash_background` = `#FF2C087B`, sampled from approved background).
+   - Added `values-v31/styles.xml` and `values-night-v31/styles.xml` using `android:windowSplashScreenBackground` and `android:windowSplashScreenAnimatedIcon` (`@mipmap/ic_launcher`).
+   - Updated `drawable/launch_background.xml` and `drawable-v21/launch_background.xml` to use `@color/splash_background`.
+   - No synthetic or artificial splash delays introduced.
+4. **Preservation of Game Integrity**:
+   - Zero changes to gameplay, question bank (220 questions preserved), stored preference keys, haptics service, signing configuration, or application ID.
+
+### Verification Results
+| Verification Step | Result |
+| --- | --- |
+| `flutter analyze` | Exit 0, 0 issues |
+| `flutter test` | Exit 0, all 35 tests passed |
+| `flutter build apk --release` | Exit 0, 49.3 MB |
+| `flutter build appbundle --release` | Exit 0, 48.4 MB |
+| `apksigner verify --print-certs` | Exit 0, signed by Ahmed Hassan Mohamed Masoud (`68f696a7f48ed756c42543a0d3ae22d66f4ec758ff863ac92f2fd367f0679575`) |
+| `adb install -r` on Samsung SM-A225F | Exit 0, Success (installed in place, user data preserved) |
+
+Rebuilt Artifact Hashes:
+- APK (`build/app/outputs/flutter-apk/app-release.apk`): SHA-256 `611C23A6D08549471133E8154977BD23ECBC8C5B6B5C95F2D950DD32083AD80E`
+- AAB (`build/app/outputs/bundle/release/app-release.aab`): SHA-256 `0317D8A07181230F3E8390F8628DEFABDD88C4EB8819C50DB9B0931A37646A72`
+
+## Owner-supplied transparent branding integration — 2026-11-12
+
+Current feature branch: `task/04-branding`. Existing uncommitted report content was preserved. No commit, push, merge, store upload or device installation was performed for this update.
+
+The owner explicitly supplied replacement images and requested saving them in assets before integration. Copied the three local download files byte-for-byte first, preserving their alpha and their actual 1254x1254 dimensions:
+
+| Active asset | SHA-256 |
+| --- | --- |
+| `assets/branding/adaptive_foreground.png` | `0F0233EA823B7ED34C3D2B85477253603A6007135940C6B351F3A01A58D911DD` |
+| `assets/branding/adaptive_background.png` | `FBA794DFD2AB8DFEE00F90381FED4CD78D07C96CBE11ED5B2271692A7B46ED57` |
+| `assets/branding/splash_logo.png` | `7A02E6601DCFEBF630D96CF08A7C19AA519CC407FB118EEEBE1C6890F03631B1` |
+
+The historical `_1024.png` adaptive/splash sources are retained but no longer used by generation. The existing legacy launcher source and Play Store candidate are unchanged. The owner clarified that the full-background store image is for Play Store only; it is not used as the new foreground or splash.
+
+### Implemented behavior
+
+- Adaptive resources now use the owner's transparent foreground and purple background. A 20% inset per side replaces the old 7% setting, which was tuned for a different, flattened source. This source-specific padding retains the complete cuffs within the central adaptive safe area instead of leaving a second purple square inside the icon.
+- Added a dedicated native splash drawable using the owner's `splash_logo.png`, copied exactly into `drawable-nodpi`. The source/resource SHA-256 values match.
+- Android 12+ day/night launch themes now reference `@drawable/splash_icon` instead of the launcher icon. Earlier Android launch backgrounds center the same padded emblem in a 288dp square over the existing purple color. No Flutter splash widget, route, dependency, forced delay or game-start behavior was introduced.
+- `tool/sync_android_branding.ps1` reproduces the splash copy and launcher generation. Android consumes these images as native resources; a redundant Flutter asset-bundle entry is unnecessary.
+- `docs/branding/preview.html` shows circle/rounded launcher approximations and light/dark splash placement. Rendered with headless Chrome and visually inspected `build/branding-preview.png`; this is browser evidence, not Samsung or Android system rendering evidence.
+
+### Executed verification
+
+| Check | Actual result |
+| --- | --- |
+| Branding sync / `dart run flutter_launcher_icons` | Exit 0; regenerated all Android launcher densities and adaptive XML with 20% inset |
+| `flutter analyze` | Exit 0; no issues, 30.1 seconds |
+| `flutter test` | Exit 0; all 35 tests passed, including existing upgrade/persistence and haptics tests |
+| `flutter build apk --debug --no-pub` | Exit 0; `build/app/outputs/flutter-apk/app-debug.apk`, Gradle 46.2 seconds |
+| `git diff --check` | Exit 0; Windows line-ending notices only |
+| Source/resource integrity | Owner download hashes match the three saved assets; splash resource matches its source |
+| Read-only PNG geometry audit | Python/Pillow inspection, alpha >=16: padded maximum radius 0.291108 for foreground and 0.290580 for splash, normalized to canvas width |
+
+The measured artwork radii after 20% padding are smaller than the adaptive central safe radius 33/108 (~0.305556) and the Android 12 splash radius 96/288 (~0.333333), respectively. This checks static geometry above the stated alpha threshold, not launcher motion or every device mask. Earlier optional C# inspection attempts failed because of local System.Drawing assembly references; the successful read-only measurements above used Pillow instead. No image pixels were edited by these checks. Sizing references: [Android adaptive icons](https://developer.android.com/develop/ui/compose/system/icon_design_adaptive), [Android splash screens](https://developer.android.com/develop/ui/views/launch/splash-screen).
+
+### Remaining visual checks and release limits
+
+The supplied transparent sources retain visible pale residue near motion strokes and some colored edge fringe at full resolution. They were integrated as requested without silently redrawing the approved illustration. The small browser preview was reviewed, but clean production artwork and device appearance still require owner review. A clean export from layered artwork can replace the PNGs later through the same generation script.
+
+Owner retest: after a separately verified same-signer release build/install in place (never uninstall or clear data), inspect Samsung One UI icon size/margins, circle-mask fit if available, cold launch in light/dark mode, and absence of a nested purple tile or clipped cuffs. Confirm saved settings/custom questions remain present. Android 12+ launch appearance, pre-12 launch appearance, launcher cache behavior and actual Samsung visual quality are not marked PASS by this update. Do not clear launcher storage to refresh the icon.
+
+This update built a debug APK only; no fresh signed release APK/AAB or signing verification is claimed. Existing release files do not contain these new changes merely because the debug build passed. Application ID, upload signing configuration, credentials, question bank, gameplay, haptics and persisted preference keys were not modified. No private credential file was read or printed, and no key was created. The build uses the existing Gradle configuration internally. Git diff inspection found no changes to `lib`, `test`, `assets/data`, the app Gradle script or AndroidManifest.xml.
+
+Additional packaged-APK evidence: `aapt dump badging` succeeded and reported package `com.ahmedhassan.passthephone`, versionName `0.7.0`, versionCode `7`, minSdk `24`, targetSdk `36` and compileSdk `36`. `aapt2 dump resources` succeeded and showed `drawable/splash_icon`, `drawable/splash_logo`, the adaptive launcher, and both Android 12 theme references to the dedicated splash icon. Debug APK SHA-256: `197B640856BAF747F933CC05894445B66A1DFFF2B5ACFB3C276011AC292A978C`.
+
+## Current assets-only branding refresh — 2026-11-12
+
+The owner requested using the current `assets/branding` files. Inspection found four supplied PNGs and owner removals of the previous flattened launcher/store sources and README.txt. Those removals were preserved. The foreground, splash and dark background hashes are unchanged from the preceding integration; the newly added vivid `adaptive_background2.png` is SHA-256 `C545A370D8F73006AA8A41EDD68649FB2B36F9BCC02D37757D684FFA477C9D47`. No source image was redrawn or edited.
+
+Changes superseding the earlier asset mapping:
+
+- Adaptive launcher now uses `adaptive_background2.png` with `adaptive_foreground.png`. Retained the measured 20% foreground inset, rather than reducing padding on the same artwork and risking cuff clipping.
+- Fixed the generator's missing `launcher_icon_1024.png` reference. Its raster fallback now uses the existing foreground. Added `mipmap-anydpi/ic_launcher.xml` to compose the generated background and foreground natively for Android 24/25; this default density-independent drawable supplies the complete legacy icon. Its inset is 7% because legacy icons do not have the adaptive layer viewport. Android 26+ retains the separate adaptive drawable and 20% inset. The PNG fallbacks were regenerated too.
+- Native splash continues to use the owner's dedicated transparent emblem in both themes and all supported Android versions. Background color is now `#2D037F`, sampled from the supplied dark background. The vivid gradient is used for the launcher; the native Android 12+ splash uses a uniform color. No extra Flutter splash screen or artificial delay was introduced.
+- Branding sync validates all four source files before regenerating resources. Added `assets/branding/README.md` documenting current inputs. Repository search outside historical test reports found no remaining references to removed source filenames.
+- Updated the HTML preview for the vivid gradient, legacy layout and current splash color. Rendered via headless Chrome and visually inspected `build/branding-preview.png`; this remains a static browser approximation, not a device screenshot.
+
+Executed after this refresh:
+
+| Check | Actual result |
+| --- | --- |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tool/sync_android_branding.ps1` | Exit 0; resources regenerated successfully |
+| `flutter analyze` | Exit 0; no issues, 1.7 seconds |
+| `flutter test` | Exit 0; all 35 tests passed |
+| `flutter build apk --debug --no-pub` | Exit 0; Gradle 10.1 seconds |
+| `git diff --check` | Exit 0; line-ending notices only |
+| `aapt dump badging` | Exit 0; package `com.ahmedhassan.passthephone`, version `0.7.0+7`, min SDK 24, target/compile SDK 36 |
+| `aapt2 dump resources` | Exit 0; packaged launcher and dedicated splash resources/theme references found |
+
+Current debug APK: `build/app/outputs/flutter-apk/app-debug.apk`, SHA-256 `BE019F71D803761035F6504D4D3C3D3058E8A365547A85187F4F364D51342C6D`. The preceding debug APK hash describes an older build and is superseded by this one.
+
+No signed release build, device installation, Samsung visual PASS or process-death test was performed in this refresh. Source edge residue remains present and was not claimed to be corrected by configuration changes. Review circle/Samsung masks and cold launch on actual devices before approving visual quality; Android 24/25 native rendering remains unverified on hardware. Use only a separately verified same-signer release for a later in-place device upgrade, without uninstalling or clearing data. Existing release artifacts have not been refreshed by the debug build.
+
+No changes to gameplay, preferences, question data, haptics, app ID, manifest or upload signing configuration. No new dependencies or credentials, no key access/creation, no commit/push/merge/publication. Work remains local on the existing `task/04-branding` feature branch; main was not modified. Prior report content was preserved.
+
+## Home hero background only — 2026-11-13 (Africa/Cairo)
+
+Request: add `assets/branding/purple_pass_the_phone_hero.png` behind the existing HomeScreen hero without a redesign. Inspected the original HomeScreen first: content-sized Container, radius 32, horizontal padding 25, vertical padding 31, existing theme primaryContainer background at 70% alpha, unchanged Column/Row/text/phone badge. Existing unrelated working-tree branding changes and owner deletions were preserved.
+
+Implementation adds only a DecorationImage to that same BoxDecoration and one explicit asset declaration in pubspec.yaml. Uses BoxFit.cover and the existing border radius's image clipping. Background decoration painting creates no widget, pointer target or semantic node; the content tree, natural sizing, hit testing, layout and text styles remain unchanged. No Stack, extra height, route or splash widget was introduced. All original text, including YOUR TURN, Arabic title/subtitle, and phone badge is untouched. Only the requested hero image is registered; `purple_pass_the_phone_hero_2.png` is not used.
+
+Overlay tuning: evaluated the requested 35% theme-purple tint with read-only sampled pixel compositing. Its minimum sampled contrast against the existing opaque text color was approximately 1.25:1 in light mode and 1.62:1 in dark mode. Selected an 85% primaryContainer tint via ColorFilter/BlendMode.srcOver, yielding approximately 5.23:1 and 4.91:1 for those sampled opaque text colors. These are conservative image-sample calculations, not full rendered accessibility certification (YOUR TURN retains its original 74%-alpha foreground). The stronger tint keeps the photograph faint and readable without changing foreground colors or either theme.
+
+Executed verification so far:
+
+- `dart format lib/features/home/home_screen.dart`: exit 0, no formatting changes needed.
+- `flutter analyze`: exit 0, no issues, 1.6 seconds.
+- `flutter test`: exit 0, all 35 existing tests passed.
+- Temporary before/after widget probe: eight identical snapshots across light/dark, widths 360/600, text scales 1.0/1.8 with RTL. Compared card and text rectangles, icon rectangle, original text styles, padding and base background color. Initial baseline probe surfaced an existing narrow-view RenderFlex overflow; after recording baseline exceptions, both before/after geometry comparison runs passed with the same two baseline error cases. This is not a claim that those pre-existing layout cases are overflow-free. No unrelated layout change was made. Probe and JSON evidence are local ignored build files (`build/hero_visual_probe_test.dart`, `build/hero-layout-before.json`, `build/hero-layout-after.json`), not permanent test-suite additions.
+- Exact source comparison against the pre-edit copy: removing the 12 added decoration lines reproduces the entire original HomeScreen source. Pubspec has only the one new asset entry; dependency lock file unchanged.
+- `git diff --check`: exit 0.
+
+Image SHA-256: `A506112A58254F57E1EB3B6DA651BF3DAB433959F4CBDEDD867FD178C2A11240`. Source pixels unchanged. This task did not edit launcher/splash resources, gameplay, haptics, saved preference keys, questions, application ID, signing setup or keys. The requested release build uses the existing private signing configuration internally; no credential contents were inspected or printed. No merge or publication is authorized/performed. Owner visual review remains pending.
+
+Completed release evidence for this hero update:
+
+| Check | Actual result |
+| --- | --- |
+| `flutter build apk --release` | Exit 0; Gradle 87.4 seconds, reported 51.8 MB |
+| `apksigner verify --verbose --print-certs` via installed apksigner.jar | Exit 0, Verifies, APK v2=true, one signer |
+| Signer continuity | Certificate SHA-256 `68f696a7f48ed756c42543a0d3ae22d66f4ec758ff863ac92f2fd367f0679575`; matches pre-build release APK |
+| `aapt dump badging` | Exit 0; `com.ahmedhassan.passthephone`, version `0.7.0+7`, min SDK 24, target/compile SDK 36 |
+| APK asset integrity | Bundled `assets/flutter_assets/assets/branding/purple_pass_the_phone_hero.png` equals source bytes and SHA-256 |
+
+Fresh signed APK: `build/app/outputs/flutter-apk/app-release.apk`. SHA-256: `E3E05C0A618A3E146D6F8D2CA9768676DCEE83EDD7B95D966694E81E079B2E1E`.
+
+The APK is built from the current working tree, including earlier pending owner-approved branding integration; no launcher or splash source/configuration was edited by the hero task itself. No new AAB was built. APK not installed on a device in this task. Owner retest: install the verified release as an in-place update with no uninstall/data clearing; inspect the Home hero in light/dark mode, confirm identical title/subtitle/YOUR TURN and phone badge placement, image cover crop and rounded edges, unchanged scrolling/taps and legibility. Actual device visual approval remains pending. No new maximum-font-scaling, TalkBack or process-death PASS is claimed. No commit, push, merge or publication performed.

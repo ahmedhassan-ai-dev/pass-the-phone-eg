@@ -78,6 +78,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     color: scheme.primaryContainer.withValues(alpha: 0.70),
                     borderRadius: BorderRadius.circular(32),
+                    image: DecorationImage(
+                      image: const AssetImage(
+                        'assets/branding/purple_pass_the_phone_hero.png',
+                      ),
+                      fit: BoxFit.cover,
+                      // A 35% tint leaves the unchanged text too low contrast
+                      // over this artwork; use a softer, theme-aware blend.
+                      colorFilter: ColorFilter.mode(
+                        scheme.primaryContainer.withValues(alpha: 0.85),
+                        BlendMode.srcOver,
+                      ),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

@@ -2,10 +2,14 @@ flutter_launcher_icons:
   # --- Legacy launcher icons (pre-API 26) ---
   android: true
   ios: false
-  image_path: "assets/branding/launcher_icon_1024.png"
+  # Raster fallback; the native mipmap-anydpi layer-list composes both layers
+  # for Android 24/25 without depending on a removed flattened source file.
+  image_path: "assets/branding/adaptive_foreground.png"
   min_sdk_android: 21
 
   # --- Android Adaptive Icons (API 26+) ---
-  adaptive_icon_foreground: "assets/branding/adaptive_foreground_1024.png"
-  adaptive_icon_background: "assets/branding/adaptive_background_1024.png"
-  adaptive_icon_foreground_inset: 7
+  adaptive_icon_foreground: "assets/branding/adaptive_foreground.png"
+  adaptive_icon_background: "assets/branding/adaptive_background2.png"
+  # Owner's transparent artwork occupies most of its 1254 px canvas.
+  # Keep the complete cuffs inside the adaptive icon's central safe circle.
+  adaptive_icon_foreground_inset: 20

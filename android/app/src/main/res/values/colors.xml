@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand purple from approved adaptive_background (#2C087B) -->
-    <color name="splash_background">#FF2C087B</color>
+    <!-- Center sample from assets/branding/adaptive_background.png.
+         Android 12's native splash requires a single background color. -->
+    <color name="splash_background">#FF2D037F</color>
 </resources>
