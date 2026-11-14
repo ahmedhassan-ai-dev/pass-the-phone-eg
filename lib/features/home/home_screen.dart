@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/models/game_category.dart';
 import '../../core/services/app_store.dart';
 import '../game/game_screen.dart';
@@ -79,6 +78,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     color: scheme.primaryContainer.withValues(alpha: 0.70),
                     borderRadius: BorderRadius.circular(32),
+                    image: DecorationImage(
+                      image: const AssetImage(
+                        'assets/branding/purple_pass_the_phone_hero.png',
+                      ),
+                      fit: BoxFit.cover,
+                      // A 35% tint leaves the unchanged text too low contrast
+                      // over this artwork; use a softer, theme-aware blend.
+                      colorFilter: ColorFilter.mode(
+                        scheme.primaryContainer.withValues(alpha: 0.85),
+                        BlendMode.srcOver,
+                      ),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,15 +143,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        if (widget.store.hapticsEnabled)
-                          HapticFeedback.selectionClick();
+                        widget.store.haptics.gameStart();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => GameScreen(
                               session: widget.store.startGame('friends'),
                               category: gameCategories.first,
-                              hapticsEnabled: widget.store.hapticsEnabled,
+                              haptics: widget.store.haptics,
                             ),
                           ),
                         );
@@ -161,69 +171,80 @@ class _HomeScreenState extends State<HomeScreen> {
                       runSpacing: 12,
                       children: gameCategories.map((c) {
                         final active = selected == c.id;
-                        return SizedBox(
-                          width: tileWidth,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 260),
-                            curve: Curves.easeOutCubic,
-                            decoration: BoxDecoration(
-                              color: active
-                                  ? c.color.withValues(alpha: 0.17)
-                                  : t.cardTheme.color,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                width: active ? 2 : 1,
+                        return Semantics(
+                          key: ValueKey('category-${c.id}'),
+                          selected: active,
+                          button: true,
+                          child: SizedBox(
+                            width: tileWidth,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
                                 color: active
-                                    ? c.color
-                                    : scheme.outlineVariant.withValues(
-                                        alpha: 0.35,
-                                      ),
-                              ),
-                            ),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () {
-                                if (widget.store.hapticsEnabled)
-                                  HapticFeedback.selectionClick();
-                                setState(() => selected = c.id);
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(17),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(c.icon, color: c.color, size: 29),
-                                        const Spacer(),
-                                        Icon(
-                                          active
-                                              ? Icons.check_circle_rounded
-                                              : Icons.circle_outlined,
-                                          size: 20,
-                                          color: active
-                                              ? c.color
-                                              : scheme.outline,
+                                    ? c.color.withValues(alpha: 0.17)
+                                    : t.cardTheme.color,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  width: active ? 2 : 1,
+                                  color: active
+                                      ? c.color
+                                      : scheme.outlineVariant.withValues(
+                                          alpha: 0.35,
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 22),
-                                    Text(
-                                      c.title,
-                                      style: t.textTheme.titleLarge?.copyWith(
-                                        fontSize: 19,
+                                ),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: () {
+                                  if (selected != c.id) {
+                                    widget.store.haptics.selection();
+                                  }
+                                  setState(() => selected = c.id);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(17),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            c.icon,
+                                            color: c.color,
+                                            size: 29,
+                                          ),
+                                          const Spacer(),
+                                          Icon(
+                                            active
+                                                ? Icons.check_circle_rounded
+                                                : Icons.circle_outlined,
+                                            size: 20,
+                                            color: active
+                                                ? c.color
+                                                : scheme.outline,
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      c.subtitle,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: t.textTheme.bodySmall?.copyWith(
-                                        color: scheme.onSurfaceVariant,
+                                      const SizedBox(height: 22),
+                                      Text(
+                                        c.title,
+                                        style: t.textTheme.titleLarge?.copyWith(
+                                          fontSize: 19,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        c.subtitle,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: t.textTheme.bodySmall?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -236,8 +257,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    Text('عدد الجولات', style: t.textTheme.titleLarge),
-                    const Spacer(),
+                    Expanded(
+                      child: Text('عدد الجولات', style: t.textTheme.titleLarge),
+                    ),
                     Text(
                       maxRounds == null ? 'مفتوح ∞' : '$maxRounds جولة',
                       style: t.textTheme.labelLarge?.copyWith(
@@ -256,8 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: Text(option == null ? '∞ مفتوح' : '$option'),
                         selected: maxRounds == option,
                         onSelected: (_) {
-                          if (widget.store.hapticsEnabled)
-                            HapticFeedback.selectionClick();
+                          if (maxRounds != option) {
+                            widget.store.haptics.selection();
+                          }
                           setState(() => maxRounds = option);
                         },
                       ),
@@ -270,8 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: count == 0
                         ? null
                         : () {
-                            if (widget.store.hapticsEnabled)
-                              HapticFeedback.mediumImpact();
+                            widget.store.haptics.gameStart();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -281,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     limit: maxRounds,
                                   ),
                                   category: category,
-                                  hapticsEnabled: widget.store.hapticsEnabled,
+                                  haptics: widget.store.haptics,
                                 ),
                               ),
                             );

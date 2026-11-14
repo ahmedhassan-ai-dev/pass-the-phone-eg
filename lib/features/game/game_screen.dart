@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/models/game_category.dart';
 import '../../core/services/game_session.dart';
+import '../../core/services/haptic_service.dart';
 import '../../core/widgets/press_scale.dart';
 import '../../core/widgets/question_card.dart';
 
 class GameScreen extends StatefulWidget {
   final GameSession session;
   final GameCategory category;
-  final bool hapticsEnabled;
+  final HapticService haptics;
   const GameScreen({
     super.key,
     required this.session,
     required this.category,
-    this.hapticsEnabled = true,
+    required this.haptics,
   });
 
   @override
@@ -27,7 +27,6 @@ class _GameScreenState extends State<GameScreen> {
       Navigator.pop(context);
       return;
     }
-    if (widget.hapticsEnabled) HapticFeedback.selectionClick();
     setState(() {
       if (game.phase == GamePhase.question) {
         game.handOff();
@@ -35,6 +34,11 @@ class _GameScreenState extends State<GameScreen> {
         game.revealNext();
       }
     });
+    if (game.phase == GamePhase.handoff) {
+      widget.haptics.passPhone();
+    } else if (game.phase == GamePhase.question) {
+      widget.haptics.revealQuestion();
+    }
   }
 
   Future<void> exitGame() async {
@@ -116,7 +120,10 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                         ),
                         Semantics(
-                          label: 'الجولة ${game.round}',
+                          label: finished
+                              ? 'خلصت الجولة'
+                              : 'الجولة ${game.round}',
+                          excludeSemantics: true,
                           child: SizedBox(
                             width: 49,
                             child: Text(

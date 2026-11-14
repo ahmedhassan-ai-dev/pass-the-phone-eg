@@ -46,3 +46,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Append these lines to your Flutter project's existing .gitignore
+**/key.properties
+*.jks
+*.keystore
+.env
+.env.*
+!*.example

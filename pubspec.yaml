@@ -1,7 +1,7 @@
 name: pass_the_phone
 description: Offline Egyptian Arabic party game.
 publish_to: none
-version: 0.6.0+6
+version: 0.8.0+8
 
 environment:
   sdk: '>=3.9.0 <4.0.0'
@@ -9,14 +9,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   shared_preferences: ^2.5.6
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
   assets:
     - assets/data/questions.json
+    - assets/branding/purple_pass_the_phone_hero.png

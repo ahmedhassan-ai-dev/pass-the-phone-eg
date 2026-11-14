@@ -32,10 +32,19 @@ class _CustomQuestionsScreenState extends State<CustomQuestionsScreen> {
       ).showSnackBar(const SnackBar(content: Text('السؤال اتضاف للقعدة ✨')));
       setState(() {});
     } on ArgumentError catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('${e.message}')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر حفظ السؤال. النص لسه موجود؛ حاول مرة تانية.'),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -73,6 +82,7 @@ class _CustomQuestionsScreenState extends State<CustomQuestionsScreen> {
                 ),
                 const SizedBox(height: 9),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: category,
                   decoration: const InputDecoration(labelText: 'الفئة'),
                   items: gameCategories
@@ -140,8 +150,20 @@ class _CustomQuestionsScreenState extends State<CustomQuestionsScreen> {
                             ),
                           );
                           if (approved == true) {
-                            await widget.store.removeQuestion(q.id);
-                            if (mounted) setState(() {});
+                            try {
+                              await widget.store.removeQuestion(q.id);
+                              if (mounted) setState(() {});
+                            } catch (_) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'تعذر حذف السؤال. حاول مرة تانية.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
                           }
                         },
                       ),

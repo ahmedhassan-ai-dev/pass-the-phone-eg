@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 24/25: compose the owner's layers without a flattened source PNG.
+     Android 26+ selects mipmap-anydpi-v26's AdaptiveIconDrawable instead. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_background" />
+    <item>
+        <inset
+            android:drawable="@drawable/ic_launcher_foreground"
+            android:inset="7%" />
+    </item>
+</layer-list>

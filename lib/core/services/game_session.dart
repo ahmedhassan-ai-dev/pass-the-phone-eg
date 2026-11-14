@@ -10,6 +10,7 @@ class GameSession {
   final bool handoffEnabled;
   final Random _random;
   final void Function(String)? onQuestionShown;
+  final void Function(List<String>)? onRemainingChanged;
   late List<PartyQuestion> _deck;
   int _cursor = 0;
   int round = 1;
@@ -23,6 +24,7 @@ class GameSession {
     Random? random,
     List<PartyQuestion>? initialOrder,
     this.onQuestionShown,
+    this.onRemainingChanged,
   }) : _source = List.of(questions),
        _random = random ?? Random.secure() {
     if (_source.isEmpty) throw ArgumentError('No questions available');
@@ -35,7 +37,7 @@ class GameSession {
         !_deck.map((q) => q.id).toSet().containsAll(_source.map((q) => q.id))) {
       throw ArgumentError('Invalid initial order');
     }
-    onQuestionShown?.call(current.id);
+    _notifyProgress();
   }
 
   PartyQuestion get current => _deck[_cursor];
@@ -66,7 +68,15 @@ class GameSession {
     if (_cursor >= _deck.length) _reshuffle();
     round++;
     phase = GamePhase.question;
+    _notifyProgress();
+  }
+
+  void _notifyProgress() {
     onQuestionShown?.call(current.id);
+    // Observe the existing deck, including after reshuffle. Never reorder it.
+    onRemainingChanged?.call(
+      List.unmodifiable(_deck.skip(_cursor + 1).map((q) => q.id)),
+    );
   }
 
   void _reshuffle() {

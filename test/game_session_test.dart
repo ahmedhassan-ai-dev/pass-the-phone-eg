@@ -19,6 +19,30 @@ void main() {
     expect(game.phase, GamePhase.finished);
   });
 
+  test('persistence observer does not change uninterrupted shuffled order', () {
+    var remaining = <String>[];
+    final observed = GameSession(
+      questions,
+      handoffEnabled: false,
+      random: Random(42),
+      onRemainingChanged: (ids) {
+        remaining = ids;
+      },
+    );
+    final original = GameSession(
+      questions,
+      handoffEnabled: false,
+      random: Random(42),
+    );
+    for (var i = 0; i < 40; i++) {
+      expect(observed.current.id, original.current.id);
+      expect(remaining.length, questions.length - (i % questions.length) - 1);
+      expect(() => remaining.add('bad'), throwsUnsupportedError);
+      observed.handOff();
+      original.handOff();
+    }
+  });
+
   test('no duplicate in each full deck cycle', () {
     final game = GameSession(questions, random: Random(42));
     final first = <String>{};
@@ -90,6 +114,53 @@ void main() {
       game.handOff();
     }
     expect(seen.length, questions.length);
+  });
+
+  test('revealNext outside handoff is ignored', () {
+    final game = GameSession(questions, random: Random(5));
+    game.revealNext();
+    expect(game.round, 1);
+    expect(game.phase, GamePhase.question);
+  });
+
+  test('invalid limit is rejected', () {
+    expect(() => GameSession(questions, limit: 0), throwsArgumentError);
+    expect(() => GameSession(questions, limit: -3), throwsArgumentError);
+  });
+
+  test('wrong initial order is rejected', () {
+    expect(
+      () => GameSession(questions, initialOrder: [questions.first]),
+      throwsArgumentError,
+    );
+    expect(
+      () => GameSession(
+        questions,
+        initialOrder: [
+          questions.first,
+          questions.first,
+          questions[2],
+          questions[3],
+        ],
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('last question does not become first after reshuffle', () {
+    final game = GameSession(
+      questions,
+      random: Random(9),
+      initialOrder: questions,
+    );
+    final ids = <String>[];
+    for (var i = 0; i < questions.length; i++) {
+      ids.add(game.current.id);
+      game.handOff();
+      game.revealNext();
+    }
+    expect(ids.toSet().length, questions.length);
+    expect(game.current.id, isNot(ids.last));
   });
 
   test('empty questions rejected', () {
