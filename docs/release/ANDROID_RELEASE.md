@@ -23,6 +23,12 @@ compileSdk and targetSdk have an explicit floor of 36. Flutter 3.47.7 defaults t
 
 Source review: the main manifest requests VIBRATE for optional capped native haptic feedback, gated by the persisted haptics setting. INTERNET is only in debug/profile. No ad, analytics, account or networking SDK is declared. Inspect merged release permissions after dependency changes.
 
-SafeArea is used throughout; Android 15/16 edge-to-edge insets, gesture/three-button navigation contrast and large text need device verification. Existing raster launcher icons remain; no adaptive icon is supplied. Owner icon approval/replacement remains open.
+SafeArea is used throughout; Android 15/16 edge-to-edge insets, gesture/three-button navigation contrast and large text need device verification. Owner-approved launcher/adaptive icons, native splash and Home hero are integrated and preserved in v0.8. Do not regenerate branding during release checks.
+
+2026-11-14 update: owner-confirmed API 35/TalkBack/large-text results and agent-executed API 36/16 KB plus API 35 emulator E2E/release smoke are documented in EMULATOR_E2E_REPORT.md and REAL_DEVICE_QA.md. The full Android 16 manual navigation/inset/orientation matrix remains separate from these core automated passes.
+
+Final owner confirmation on the same date: Android 16/API 36/16 KB manual QA PASS (5/5) for gesture/three-button navigation, portrait/landscape, light/dark/system bars, custom questions/keyboard/large text and force-stop/relaunch/persisted state. This closes the corresponding manual gates above using OWNER-CONFIRMED evidence; it does not claim ARM64 hardware, interrupted-write, reboot or backup/restore verification.
+
+RC version is `0.8.0+8`. The owner confirmed no previous Play uploads and unused code 8; this is owner evidence, not a Play Console API query. Existing private signing configuration is reused unchanged. Do not regenerate/replace keys. See V080_RC.md for artifact verification and remaining device gates.
 
 Sources checked 2026-11-11: [Flutter release/signing](https://docs.flutter.dev/deployment/android), [Play API requirements](https://support.google.com/googleplay/android-developer/answer/11926878), [Android signing](https://developer.android.com/studio/publish/app-signing).

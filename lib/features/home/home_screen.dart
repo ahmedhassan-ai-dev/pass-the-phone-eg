@@ -171,70 +171,80 @@ class _HomeScreenState extends State<HomeScreen> {
                       runSpacing: 12,
                       children: gameCategories.map((c) {
                         final active = selected == c.id;
-                        return SizedBox(
-                          width: tileWidth,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 260),
-                            curve: Curves.easeOutCubic,
-                            decoration: BoxDecoration(
-                              color: active
-                                  ? c.color.withValues(alpha: 0.17)
-                                  : t.cardTheme.color,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                width: active ? 2 : 1,
+                        return Semantics(
+                          key: ValueKey('category-${c.id}'),
+                          selected: active,
+                          button: true,
+                          child: SizedBox(
+                            width: tileWidth,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
                                 color: active
-                                    ? c.color
-                                    : scheme.outlineVariant.withValues(
-                                        alpha: 0.35,
-                                      ),
-                              ),
-                            ),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () {
-                                if (selected != c.id) {
-                                  widget.store.haptics.selection();
-                                }
-                                setState(() => selected = c.id);
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(17),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(c.icon, color: c.color, size: 29),
-                                        const Spacer(),
-                                        Icon(
-                                          active
-                                              ? Icons.check_circle_rounded
-                                              : Icons.circle_outlined,
-                                          size: 20,
-                                          color: active
-                                              ? c.color
-                                              : scheme.outline,
+                                    ? c.color.withValues(alpha: 0.17)
+                                    : t.cardTheme.color,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  width: active ? 2 : 1,
+                                  color: active
+                                      ? c.color
+                                      : scheme.outlineVariant.withValues(
+                                          alpha: 0.35,
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 22),
-                                    Text(
-                                      c.title,
-                                      style: t.textTheme.titleLarge?.copyWith(
-                                        fontSize: 19,
+                                ),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: () {
+                                  if (selected != c.id) {
+                                    widget.store.haptics.selection();
+                                  }
+                                  setState(() => selected = c.id);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(17),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            c.icon,
+                                            color: c.color,
+                                            size: 29,
+                                          ),
+                                          const Spacer(),
+                                          Icon(
+                                            active
+                                                ? Icons.check_circle_rounded
+                                                : Icons.circle_outlined,
+                                            size: 20,
+                                            color: active
+                                                ? c.color
+                                                : scheme.outline,
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      c.subtitle,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: t.textTheme.bodySmall?.copyWith(
-                                        color: scheme.onSurfaceVariant,
+                                      const SizedBox(height: 22),
+                                      Text(
+                                        c.title,
+                                        style: t.textTheme.titleLarge?.copyWith(
+                                          fontSize: 19,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        c.subtitle,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: t.textTheme.bodySmall?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -247,8 +257,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    Text('عدد الجولات', style: t.textTheme.titleLarge),
-                    const Spacer(),
+                    Expanded(
+                      child: Text('عدد الجولات', style: t.textTheme.titleLarge),
+                    ),
                     Text(
                       maxRounds == null ? 'مفتوح ∞' : '$maxRounds جولة',
                       style: t.textTheme.labelLarge?.copyWith(

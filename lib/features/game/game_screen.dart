@@ -120,7 +120,10 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                         ),
                         Semantics(
-                          label: 'الجولة ${game.round}',
+                          label: finished
+                              ? 'خلصت الجولة'
+                              : 'الجولة ${game.round}',
+                          excludeSemantics: true,
                           child: SizedBox(
                             width: 49,
                             child: Text(

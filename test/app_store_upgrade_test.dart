@@ -28,6 +28,49 @@ class MemoryPreferences implements SharedPreferencesAsync {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'v0.7 same-package snapshot retains custom IDs, settings and other decks',
+    () async {
+      final prefs = MemoryPreferences({
+        'ptp_theme_v2': 'dark',
+        'ptp_handoff_enabled_v5': false,
+        'ptp_haptics_enabled_v5': false,
+        'ptp_surprise_enabled_v6': true,
+        'ptp_custom_questions_v2': jsonEncode([
+          {
+            'id': 'v07-owner',
+            'category': 'family',
+            'text': 'Retained v0.7 owner question',
+            'isCustom': true,
+          },
+        ]),
+        'ptp_remaining_decks_v4': jsonEncode({
+          'family': ['v07-owner'],
+          'love': ['retained-other-deck'],
+        }),
+        'ptp_known_decks_v4': jsonEncode({
+          'family': ['v07-owner'],
+          'love': ['retained-other-deck'],
+        }),
+      });
+      final rawCustom = prefs.values['ptp_custom_questions_v2'];
+      final store = AppStore(preferences: prefs);
+      await store.load();
+      expect(store.themeMode, ThemeMode.dark);
+      expect(store.handoffEnabled, false);
+      expect(store.hapticsEnabled, false);
+      expect(store.surpriseEnabled, true);
+      expect(store.startGame('family').current.id, 'v07-owner');
+      await store.flushPendingWrites();
+      expect(prefs.values['ptp_custom_questions_v2'], rawCustom);
+      expect(
+        (jsonDecode(prefs.values['ptp_remaining_decks_v4']! as String)
+            as Map)['love'],
+        ['retained-other-deck'],
+      );
+      store.dispose();
+    },
+  );
   // Keys and JSON shape checked against ad31aad (v0.5) and e0db3d6 (v0.6).
   for (final version in [5, 6]) {
     for (final theme in ThemeMode.values) {

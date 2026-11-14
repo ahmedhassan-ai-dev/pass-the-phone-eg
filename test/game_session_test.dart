@@ -19,6 +19,30 @@ void main() {
     expect(game.phase, GamePhase.finished);
   });
 
+  test('persistence observer does not change uninterrupted shuffled order', () {
+    var remaining = <String>[];
+    final observed = GameSession(
+      questions,
+      handoffEnabled: false,
+      random: Random(42),
+      onRemainingChanged: (ids) {
+        remaining = ids;
+      },
+    );
+    final original = GameSession(
+      questions,
+      handoffEnabled: false,
+      random: Random(42),
+    );
+    for (var i = 0; i < 40; i++) {
+      expect(observed.current.id, original.current.id);
+      expect(remaining.length, questions.length - (i % questions.length) - 1);
+      expect(() => remaining.add('bad'), throwsUnsupportedError);
+      observed.handOff();
+      original.handOff();
+    }
+  });
+
   test('no duplicate in each full deck cycle', () {
     final game = GameSession(questions, random: Random(42));
     final first = <String>{};

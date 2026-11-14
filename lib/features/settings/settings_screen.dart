@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/services/app_store.dart';
+import '../../core/services/app_info.dart';
+import 'package:flutter/services.dart';
 
 class SettingsScreen extends StatelessWidget {
   final AppStore store;
@@ -90,17 +92,75 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 30),
-                Center(
-                  child: Text(
-                    'Pass The Phone · v0.7',
-                    style: Theme.of(context).textTheme.bodySmall,
+                if (store.hasSaveError)
+                  Semantics(
+                    liveRegion: true,
+                    child: const Text(
+                      'تعذر حفظ بعض التغييرات. راجع القيم المحفوظة وحاول مرة تانية.',
+                    ),
                   ),
-                ),
+                const _LegalInformation(),
               ],
             ),
           ),
         ),
       ),
     ),
+  );
+}
+
+class _LegalInformation extends StatefulWidget {
+  const _LegalInformation();
+
+  @override
+  State<_LegalInformation> createState() => _LegalInformationState();
+}
+
+class _LegalInformationState extends State<_LegalInformation> {
+  late final Future<String?> version = AppInfo.versionLabel();
+
+  Future<void> openPrivacy() async {
+    final opened = await AppInfo.openPrivacyPolicy();
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'تعذر فتح المتصفح. تقدر تنسخ الرابط وتفتحه بنفسك.',
+          ),
+          action: SnackBarAction(
+            label: 'نسخ الرابط',
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: AppInfo.privacyUrl));
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: const Text('سياسة الخصوصية'),
+          trailing: const Icon(Icons.open_in_new_rounded),
+          onTap: openPrivacy,
+        ),
+      ),
+      const SizedBox(height: 12),
+      FutureBuilder<String?>(
+        future: version,
+        builder: (context, snapshot) => Center(
+          child: Text(
+            snapshot.data == null
+                ? 'Pass The Phone'
+                : 'Pass The Phone · ${snapshot.data}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      ),
+    ],
   );
 }

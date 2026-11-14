@@ -80,3 +80,54 @@ Use distinctive, non-personal test prompts. Keep before/after notes or screensho
 - [ ] Repeat core launch/play/persistence on the 16 KB runtime and both physical display classes. Static alignment passes alone are insufficient.
 - [ ] Mark unexecuted or unavailable cases NOT RUN/BLOCKED with the reason. Do not tick a case merely because automated tests cover similar logic.
 - [ ] Owner reviews remaining defects, icon/listing/policy content, signing identity and testing evidence before authorizing any release. This checklist authorizes no upload, merge or publication.
+
+## v0.8.0+8 RC — safe owner upgrade procedure (2026-11-13)
+
+This procedure was initially pending on 2026-11-13. See the owner-confirmed update below for current status; automated RC checks in V080_RC.md do not constitute device PASS.
+
+1. Use a designated test device with its existing v0.7 installation. Do not uninstall, clear app/launcher storage, force a downgrade or replace signing keys. Preserve any existing owner data and backup settings.
+2. Record installed package/version, model/API, font/display settings and navigation mode. Use `adb shell pm path com.ahmedhassan.passthephone` to locate the installed base APK; if needed pull only that program APK into ignored local build storage and inspect its public certificate with apksigner. This does not require access to private app data or a keystore. Compare it with the verified RC signer in V080_RC.md. Stop on a mismatch.
+3. Record retained custom questions and non-default theme/handoff/haptics/surprise settings. Reveal a few non-sensitive built-in questions while unseen cards remain. Optionally add one clearly designated disposable test question, without deleting originals.
+4. Verify candidate APK SHA-256 and version 0.8.0/code 8, then install in place: `adb install -r "build/app/outputs/flutter-apk/app-release.apk"`. Stop on failure; never use uninstall, clear-data or downgrade flags as a workaround. The AAB and generated UNSIGNED validation APKs are not direct installation candidates.
+5. Open Settings. Verify actual `0.8.0 (8)` metadata, Arabic framework controls, policy URL in an external browser and normal return/back navigation. Browser-unavailable/copy fallback requires a suitable isolated device setup; do not disable the owner's browser to force this case.
+6. Confirm every retained custom question and saved setting, plus continued unseen progression in each category. Test a subsequent deck cycle as well as initial-cycle progress. Existing active-game restoration is not implemented: a fresh game after process death is expected.
+7. After confirmed saves, background/foreground, lock/unlock, restart and reboot on the test device. A deliberate `adb shell am force-stop com.ahmedhassan.passthephone` may be used after recording state; relaunch and verify saved content/queue. Test abrupt post-reveal timing separately. Do not mark process-death persistence PASS based on an in-memory fixture.
+8. On API 35 and 36, inspect all screens/dialogs with gesture and three-button navigation, system bars/cutouts, keyboard, landscape, both themes and maximum font/display settings. Keep approved visual design; record any reproducible defect before changing UI.
+9. With TalkBack, confirm category selection state/action, Arabic announcements, one round announcement and logical focus order. Test long questions, reachable bottom controls and reduced motion.
+10. On a separate actual 16 KB device/emulator, record `adb shell getconf PAGE_SIZE` = 16384, then run release launch/play/custom/settings/lifecycle checks. Existing 4 KB or API 37.2-only observations do not establish API 35/36 or 16 KB PASS.
+
+Play signing note: the upload certificate and Play distribution app-signing certificate are distinct roles and may differ. Verify intended delivery compatibility before testing a Play-served update over a local APK. Stop on INSTALL_FAILED_UPDATE_INCOMPATIBLE; preserve the installation and its data. No wipe or signing change is authorized by this checklist.
+
+## Owner-confirmed RC QA update — 2026-11-14
+
+Source: owner's explicit confirmation in this session, not independent agent execution or inference from generated QA logs.
+
+| Verification | Status and limits |
+| --- | --- |
+| Samsung SM-A225F RC upgrade and seven functional QA checks | Owner-confirmed PASS. No new agent installation performed. |
+| Android 15 / API 35, eight manual checks | Owner-confirmed PASS for the owner's eight-check matrix. Per-check settings/device details were not supplied here; do not infer additional scenarios. |
+| Physical TalkBack accessibility and large text | Owner-confirmed PASS. Do not extend this to unspecified maximum display/font settings. |
+| Force-stop and relaunch commands | Owner confirms successful execution. Retained content and queue assertions after termination, especially interrupted writes, are not established by command success alone. |
+| Android 16 / API 36 and 16 KB runtime | Subsequently agent-executed PASS for five E2E cases and the signed-release smoke on x86_64 PAGE_SIZE=16384; see EMULATOR_E2E_REPORT.md. Full Android 16 manual matrix and ARM64 16 KB remain pending. |
+| Browser-unavailable clipboard fallback | Automated tap/clipboard assertion; physical unavailable-browser path remains unverified. |
+| Abrupt save termination, reboot, backup/restore | PENDING unless separately confirmed with state assertions. |
+
+No changes to the owner's output/ or qa/ files were made for this update. Prior dated checklists remain historical; the confirmations above do not retroactively establish unobserved tests.
+
+## Agent-executed emulator update — 2026-11-14
+
+See [EMULATOR_E2E_REPORT.md](EMULATOR_E2E_REPORT.md) for the exact matrix, commands and ignored raw evidence. API 36/16 KB was completed and stopped before isolated API 35/4 KB started. Five integration E2E cases passed on each; signed production APK smoke passed on API 36 and on an API 35 rerun after a retained UI-automation timing failure. Both release smokes verified saved Haptics OFF after force-stop/relaunch, external browser activity launch and actual version display. This supersedes the earlier pending status only for these exercised cases. It does not establish abrupt-write durability, complete custom/deck state after process death, reboot/restore, maximum display scaling or all Android 16 navigation/orientation combinations. No physical Samsung command or new physical-device test was performed.
+
+## Final OWNER-CONFIRMED Android 16 manual QA — 2026-11-14
+
+Owner explicitly confirmed Android 16 / API 36 / 16 KB manual QA **PASS (5/5)**. These results supersede earlier pending labels for the following cases only; they were not independently repeated by the agent:
+
+| Owner manual case | Result |
+| --- | --- |
+| Gesture and three-button navigation | OWNER-CONFIRMED PASS |
+| Landscape/portrait transitions | OWNER-CONFIRMED PASS |
+| Light/dark themes and system bars | OWNER-CONFIRMED PASS |
+| Custom questions, keyboard and large-text layouts | OWNER-CONFIRMED PASS |
+| Force-stop, relaunch and persisted state | OWNER-CONFIRMED PASS |
+
+This is not evidence of ARM64 hardware testing, interruption while writes are pending, reboot or backup/restore. Exact maximum font/display settings were not specified. Existing automated E2E/signed-release evidence and the initial API 35 harness failure are retained unchanged. No additional device commands were run for this owner-confirmation update.

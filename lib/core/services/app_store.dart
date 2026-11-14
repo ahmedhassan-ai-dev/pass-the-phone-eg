@@ -16,6 +16,36 @@ class AppStore extends ChangeNotifier {
   static const _deckKey = 'ptp_remaining_decks_v4';
   static const _knownKey = 'ptp_known_decks_v4';
   final SharedPreferencesAsync _prefs;
+  Future<void> _writeTail = Future<void>.value();
+  bool _disposed = false;
+  bool hasSaveError = false;
+  bool _customReadable = true;
+  bool _decksReadable = true;
+
+  // All writes, including custom-question mutations, share one ordered queue.
+  // A rejected operation cannot poison subsequent operations or become an
+  // unhandled error for fire-and-forget deck updates.
+  Future<void> _write(Future<void> Function() action) {
+    final operation = _writeTail.then((_) => action());
+    _writeTail = operation.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {
+        if (error is! ArgumentError) {
+          hasSaveError = true;
+          if (!_disposed) notifyListeners();
+        }
+      },
+    );
+    return operation;
+  }
+
+  Future<void> flushPendingWrites() => _writeTail;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   final Duration Function()? _hapticElapsed;
   AppStore({
@@ -72,6 +102,8 @@ class AppStore extends ChangeNotifier {
             .toList();
       } catch (_) {
         _custom = [];
+        _customReadable = false;
+        hasSaveError = true;
       }
     }
     final savedDecks = await _prefs.getString(_deckKey);
@@ -84,6 +116,8 @@ class AppStore extends ChangeNotifier {
         );
       } catch (_) {
         _remaining = {};
+        _decksReadable = false;
+        hasSaveError = true;
       }
     }
     final knownRaw = await _prefs.getString(_knownKey);
@@ -95,6 +129,8 @@ class AppStore extends ChangeNotifier {
         );
       } catch (_) {
         _known = {};
+        _decksReadable = false;
+        hasSaveError = true;
       }
     }
     // Migration: in v0.3, standalone custom-mode questions were not assigned
@@ -130,19 +166,25 @@ class AppStore extends ChangeNotifier {
   Future<void> setHandoffEnabled(bool enabled) async {
     handoffEnabled = enabled;
     notifyListeners();
-    await _prefs.setBool(_handoffKey, enabled);
+    await _write(
+      () => _prefs.setBool(_handoffKey, enabled),
+    ).catchError((Object _) {});
   }
 
   Future<void> setHapticsEnabled(bool enabled) async {
     hapticsEnabled = enabled;
     notifyListeners();
-    await _prefs.setBool(_hapticsKey, enabled);
+    await _write(
+      () => _prefs.setBool(_hapticsKey, enabled),
+    ).catchError((Object _) {});
   }
 
   Future<void> setSurpriseEnabled(bool enabled) async {
     surpriseEnabled = enabled;
     notifyListeners();
-    await _prefs.setBool(_surpriseKey, enabled);
+    await _write(
+      () => _prefs.setBool(_surpriseKey, enabled),
+    ).catchError((Object _) {});
   }
 
   GameSession startGame(String category, {int? limit}) {
@@ -180,29 +222,39 @@ class AppStore extends ChangeNotifier {
       limit: limit,
       initialOrder: ordered,
       handoffEnabled: handoffEnabled,
-      onQuestionShown: (id) => _recordShown(category, id),
+      onRemainingChanged: (ids) => _recordRemaining(category, ids),
     );
   }
 
-  void _recordShown(String category, String id) {
-    final remaining = _remaining[category];
-    remaining?.remove(id);
+  void _recordRemaining(String category, List<String> ids) {
+    _remaining[category] = List.of(ids);
     // Persist each reveal so closing the app will not reset progress.
     _persistDecks();
   }
 
-  Future<void> _persistDecks() async {
-    await _prefs.setString(_deckKey, jsonEncode(_remaining));
-    await _prefs.setString(_knownKey, jsonEncode(_known));
+  Future<void> _persistDecks() {
+    // Never replace unreadable owner data with an empty/new deck as recovery.
+    if (!_decksReadable) return Future<void>.value();
+    final remaining = jsonEncode(_remaining);
+    final known = jsonEncode(_known);
+    return _write(() async {
+      await _prefs.setString(_deckKey, remaining);
+      await _prefs.setString(_knownKey, known);
+    }).catchError((Object _) {});
   }
 
   Future<void> setTheme(ThemeMode value) async {
     themeMode = value;
     notifyListeners();
-    await _prefs.setString(_themeKey, value.name);
+    await _write(
+      () => _prefs.setString(_themeKey, value.name),
+    ).catchError((Object _) {});
   }
 
   Future<void> addQuestion(String text, String category) async {
+    if (!_customReadable) {
+      throw StateError('Stored custom questions need recovery');
+    }
     final cleaned = text.trim().replaceAll(RegExp(r'\s+'), ' ');
     if (cleaned.length < 8 || cleaned.length > 180) {
       throw ArgumentError('السؤال لازم يكون بين 8 و180 حرف');
@@ -210,35 +262,53 @@ class AppStore extends ChangeNotifier {
     if (!['friends', 'love', 'family'].contains(category)) {
       throw ArgumentError('اختار فئة صحيحة');
     }
-    if (available(
-      category,
-    ).any((q) => q.text.toLowerCase() == cleaned.toLowerCase())) {
-      throw ArgumentError('السؤال ده موجود بالفعل');
-    }
-    _custom.add(
-      PartyQuestion(
-        id: 'custom_${DateTime.now().microsecondsSinceEpoch}',
-        category: category,
-        text: cleaned,
-        isCustom: true,
-      ),
-    );
-    notifyListeners();
-    await _saveCustom();
+    await _write(() async {
+      if (available(
+        category,
+      ).any((q) => q.text.toLowerCase() == cleaned.toLowerCase())) {
+        throw ArgumentError('السؤال ده موجود بالفعل');
+      }
+      final updated = [
+        ..._custom,
+        PartyQuestion(
+          id: 'custom_${DateTime.now().microsecondsSinceEpoch}',
+          category: category,
+          text: cleaned,
+          isCustom: true,
+        ),
+      ];
+      await _prefs.setString(
+        _customKey,
+        jsonEncode(updated.map((q) => q.toJson()).toList()),
+      );
+      _custom = updated;
+      if (!_disposed) notifyListeners();
+    });
   }
 
   Future<void> removeQuestion(String id) async {
-    _custom.removeWhere((q) => q.id == id);
-    for (final queue in _remaining.values) {
-      queue.remove(id);
+    if (!_customReadable) {
+      throw StateError('Stored custom questions need recovery');
     }
-    notifyListeners();
-    await _saveCustom();
+    await _write(() async {
+      final updated = _custom.where((q) => q.id != id).toList();
+      await _prefs.setString(
+        _customKey,
+        jsonEncode(updated.map((q) => q.toJson()).toList()),
+      );
+      _custom = updated;
+      for (final queue in _remaining.values) {
+        queue.remove(id);
+      }
+      if (!_disposed) notifyListeners();
+    });
     await _persistDecks();
   }
 
-  Future<void> _saveCustom() => _prefs.setString(
-    _customKey,
-    jsonEncode(_custom.map((q) => q.toJson()).toList()),
+  Future<void> _saveCustom() => _write(
+    () => _prefs.setString(
+      _customKey,
+      jsonEncode(_custom.map((q) => q.toJson()).toList()),
+    ),
   );
 }

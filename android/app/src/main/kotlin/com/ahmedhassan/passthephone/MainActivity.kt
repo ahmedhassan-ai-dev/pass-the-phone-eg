@@ -11,6 +11,9 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.provider.Settings
+import android.content.Intent
+import android.content.ActivityNotFoundException
+import android.net.Uri
 
 class MainActivity : FlutterActivity() {
     private var lastPulse: Long? = null
@@ -24,6 +27,32 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
+            "com.ahmedhassan.passthephone/app_info").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "version" -> {
+                    @Suppress("DEPRECATION")
+                    val info = packageManager.getPackageInfo(packageName, 0)
+                    @Suppress("DEPRECATION")
+                    val code = if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else info.versionCode.toLong()
+                    result.success(mapOf("version" to info.versionName, "build" to code))
+                }
+                "privacy" -> {
+                    val intent = Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://ahmedhassan-ai-dev.github.io/pass-the-phone-eg/privacy/"))
+                        .addCategory(Intent.CATEGORY_BROWSABLE)
+                    try {
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (_: ActivityNotFoundException) {
+                        result.success(false)
+                    } catch (_: SecurityException) {
+                        result.success(false)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "com.ahmedhassan.passthephone/haptics").setMethodCallHandler { call, result ->
             if (call.method != "pulse") {
